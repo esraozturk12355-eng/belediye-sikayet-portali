@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import streamlit as st
 import re
 
 # Sayfa Ayarları
