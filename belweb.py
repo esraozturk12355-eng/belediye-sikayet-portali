@@ -107,7 +107,7 @@ elif menu == "Şikayetlerimi Görüntüle":
 st.divider() 
 st.subheader("🏢 Müdürlük Yönetim Paneli")
 
-# Tüm müdürlüklerin listesi
+# Müdürlük listesini vatandaşın seçtiği liste ile aynı yapmalısın
 mudurluk_listesi = [
     "Yazı İşleri Müdürlüğü", "Emlak ve İstimlak Müdürlüğü", "Mali Hizmetler Müdürlüğü",
     "Veteriner İşleri Müdürlüğü", "İmar ve Şehircilik Müdürlüğü",
@@ -115,40 +115,22 @@ mudurluk_listesi = [
     "Destek Hizmetleri Müdürlüğü", "Zabıta Müdürlüğü", "Yapı Kontrol Müdürlüğü"
 ]
 
-# Giriş Alanları
+# Giriş kutuları
 col1, col2 = st.columns(2)
 with col1:
-    secilen_mudurluk = st.selectbox("Müdürlük Seçin:", mudurluk_listesi)
+    secilen_mudurluk = st.selectbox("Müdürlük Seçin:", mudurluk_listesi, key="admin_mudur")
 with col2:
     sifre = st.text_input("Giriş Şifresi:", type="password")
 
-# Örnek bir şifre belirleyelim (İstersen değiştirebilirsin)
-DOGRU_SIFRE = "1234" 
+DOGRU_SIFRE = "omu1930" # Şifreni buradan değiştirebilirsin
 
 if st.button("Şikayetleri Listele"):
     if sifre == DOGRU_SIFRE:
-        try:
-            df = pd.read_csv("sikayetler.csv")
-            # Seçilen müdürlüğe göre filtrele
-            filtreli_df = df[df["Müdürlük"] == secilen_mudurluk]
-            
-            if not filtreli_df.empty:
-                st.success(f"{secilen_mudurluk} birimine ait {len(filtreli_df)} kayıt bulundu.")
-                st.table(filtreli_df) # Daha düzenli görünmesi için tablo formatı
-            else:
-                st.info(f"{secilen_mudurluk} için henüz bir kayıt yok.")
-        except FileNotFoundError:
-            st.error("Henüz sisteme hiç şikayet girilmemiş.")
-    else:
-        st.error("Hatalı şifre! Lütfen tekrar deneyin.")
-if st.button("Şikayetleri Listele"):
-    if sifre == DOGRU_SIFRE:
-        # Dosya var mı kontrol et, yoksa boş bir tane oluştur
         if not os.path.exists("sikayetler.csv"):
             st.warning("Henüz sisteme kayıtlı bir şikayet dosyası bulunmuyor. Lütfen önce bir şikayet oluşturun.")
         else:
             df = pd.read_csv("sikayetler.csv")
-            # Filtreleme yap
+            # ÖNEMLİ: "Müdürlük" sütun isminin vatandaş kısmındaki isimle aynı olduğundan emin ol
             filtreli_df = df[df["Müdürlük"] == secilen_mudurluk]
             
             if not filtreli_df.empty:
