@@ -33,13 +33,14 @@ def veri_yukle():
 
 menu = st.sidebar.radio("İşlem Seçiniz", ["Yeni Şikayet Oluştur", "Şikayetlerimi Görüntüle"])
 
+# --- YENİ ŞİKAYET OLUŞTURMA ---
 if menu == "Yeni Şikayet Oluştur":
     st.header("📝 Yeni Şikayet Formu")
     c1, c2 = st.columns(2)
     with c1:
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
-    with c2:
+    with col2 := c2: # Walrus operator for neatness
         soyad = st.text_input("Soyadınız")
         telefon = st.text_input("Telefon Numaranız")
     
@@ -52,7 +53,7 @@ if menu == "Yeni Şikayet Oluştur":
         if ad and soyad and eposta:
             df_mevcut = veri_yukle()
             
-            # MÜDÜRLÜĞE ÖZEL SIRA NO
+            # ARKA PLANDA MÜDÜRLÜĞE ÖZEL SIRA NO HESAPLAMA
             yeni_sira_no = 1
             if not df_mevcut.empty and "Müdürlük" in df_mevcut.columns and "Sıra_No" in df_mevcut.columns:
                 birim_kayitlari = df_mevcut[df_mevcut["Müdürlük"] == secilen_mudurluk]
@@ -63,9 +64,7 @@ if menu == "Yeni Şikayet Oluştur":
             sikayet_id = str(datetime.now().timestamp()).replace(".","")[-6:]
             
             yeni_kayit = {
-                "ID": sikayet_id,
-                "Sıra_No": yeni_sira_no,
-                "Tarih": simdi,
+                "ID": sikayet_id, "Sıra_No": yeni_sira_no, "Tarih": simdi,
                 "Ad": ad, "Soyad": soyad, "E-posta": eposta, "Telefon": telefon,
                 "Müdürlük": secilen_mudurluk, "Tür": sikayet_turu,
                 "Detay": detay.replace(",", " "), "Durum": "İnceleniyor",
@@ -78,11 +77,14 @@ if menu == "Yeni Şikayet Oluştur":
             else:
                 df_yeni.to_csv("sikayetler.csv", mode='a', header=False, index=False, encoding="utf-8-sig")
             
-            st.success(f"✅ Şikayetiniz {secilen_mudurluk} birimine {yeni_sira_no}. sıra ile kaydedildi!")
+            # SADELEŞTİRİLMİŞ MESAJ
+            st.success(f"✅ Şikayetiniz başarıyla alınmıştır.")
+            st.info(f"Takip Numaranız (ID): **{sikayet_id}**")
             st.balloons()
         else:
             st.error("Lütfen tüm alanları doldurunuz.")
 
+# --- ŞİKAYET GÖRÜNTÜLEME ---
 elif menu == "Şikayetlerimi Görüntüle":
     st.header("🔍 Şikayet Sorgulama")
     arama = st.text_input("E-posta veya Telefon numaranızı giriniz")
@@ -91,10 +93,9 @@ elif menu == "Şikayetlerimi Görüntüle":
         if not df.empty:
             sonuclar = df[(df["E-posta"] == arama) | (df["Telefon"].astype(str) == arama)]
             if not sonuclar.empty:
-                st.info(f"Toplam {len(sonuclar)} adet kaydınız bulundu:")
-                st.table(sonuclar[["Sıra_No", "Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
+                st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
 
-# MÜDÜRLÜK PANELİ
+# --- MÜDÜRLÜK PANELİ ---
 st.divider()
 st.subheader("🏢 Müdürlük Yönetim Paneli")
 cp1, cp2 = st.columns(2)
@@ -107,37 +108,32 @@ if sifre == "1234":
     df_admin = veri_yukle()
     if not df_admin.empty:
         if "Müdürlük" in df_admin.columns:
-            filtreli = df_admin[df_admin["Müdürlük"] == admin_birim]
+            filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
             if not filtreli.empty:
                 st.write(f"### {admin_birim} Şikayetleri")
-                st.dataframe(filtreli)
+                st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Durum", "Detay", "Belediye_Cevabi"]])
                 
-                if "ID" in filtreli.columns:
-                    st.write("---")
-                    secilen_id = st.selectbox("İşlem Yapılacak ID:", filtreli["ID"].tolist())
-                    
-                    ci1, ci2 = st.columns(2)
-                    with ci1:
-                        yeni_durum = st.selectbox("Durum:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"])
-                        yönlendir = st.selectbox("Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim))
-                    with ci2:
-                        cevap = st.text_area("Cevap:")
-                    
-                    if st.button("Onayla"):
-                        idx = df_admin[df_admin["ID"] == secilen_id].index
-                        if not idx.empty:
-                            # Yönlendirme Sıra No Mantığı
-                            if df_admin.at[idx[0], "Müdürlük"] != yönlendir:
-                                hedef = df_admin[df_admin["Müdürlük"] == yönlendir]
-                                df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
-                            
-                            df_admin.at[idx[0], "Durum"] = yeni_durum
-                            df_admin.at[idx[0], "Müdürlük"] = yönlendir
-                            df_admin.at[idx[0], "Belediye_Cevabi"] = cevap
-                            df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                            st.success("Güncellendi!")
-                            st.rerun()
-                else:
-                    st.error("Dosya yapısı eski. Lütfen sikayetler.csv dosyasını GitHub'dan SİLİP yeni şikayet oluşturun.")
-        else:
-            st.info("Kayıt yok.")
+                st.write("---")
+                secilen_id = st.selectbox("İşlem Yapılacak ID:", filtreli["ID"].tolist())
+                
+                ci1, ci2 = st.columns(2)
+                with ci1:
+                    yeni_durum = st.selectbox("Durum:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"])
+                    yönlendir = st.selectbox("Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim))
+                with ci2:
+                    cevap = st.text_area("Cevap Notu:")
+                
+                if st.button("Onayla"):
+                    idx = df_admin[df_admin["ID"] == secilen_id].index
+                    if not idx.empty:
+                        # Yönlendirme Sıra No Mantığı
+                        if df_admin.at[idx[0], "Müdürlük"] != yönlendir:
+                            hedef = df_admin[df_admin["Müdürlük"] == yönlendir]
+                            df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
+                        
+                        df_admin.at[idx[0], "Durum"] = yeni_durum
+                        df_admin.at[idx[0], "Müdürlük"] = yönlendir
+                        df_admin.at[idx[0], "Belediye_Cevabi"] = cevap
+                        df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
+                        st.success("Kayıt güncellendi!")
+                        st.rerun()
