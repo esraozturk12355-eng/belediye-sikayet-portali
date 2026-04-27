@@ -141,3 +141,20 @@ if st.button("Şikayetleri Listele"):
             st.error("Henüz sisteme hiç şikayet girilmemiş.")
     else:
         st.error("Hatalı şifre! Lütfen tekrar deneyin.")
+if st.button("Şikayetleri Listele"):
+    if sifre == DOGRU_SIFRE:
+        # Dosya var mı kontrol et, yoksa boş bir tane oluştur
+        if not os.path.exists("sikayetler.csv"):
+            st.warning("Henüz sisteme kayıtlı bir şikayet dosyası bulunmuyor. Lütfen önce bir şikayet oluşturun.")
+        else:
+            df = pd.read_csv("sikayetler.csv")
+            # Filtreleme yap
+            filtreli_df = df[df["Müdürlük"] == secilen_mudurluk]
+            
+            if not filtreli_df.empty:
+                st.success(f"{secilen_mudurluk} için {len(filtreli_df)} kayıt listelendi.")
+                st.dataframe(filtreli_df)
+            else:
+                st.info(f"{secilen_mudurluk} birimine ait henüz bir kayıt bulunmuyor.")
+    else:
+        st.error("Hatalı şifre!")
