@@ -17,13 +17,14 @@ mudurlukler = [
     "Destek Hizmetleri Müdürlüğü", "Zabıta Müdürlüğü", "Yapı Kontrol Müdürlüğü"
 ]
 
-# --- VERİ YÜKLEME FONKSİYONU (ID HATASINI ÖNLER) ---
+# --- GÜVENLİ VERİ YÜKLEME FONKSİYONU ---
 def veri_yukle():
     if os.path.exists("sikayetler.csv"):
         try:
             df = pd.read_csv("sikayetler.csv", dtype={'ID': str}, on_bad_lines='skip', index_col=False)
-            # Eğer ID sütunu yoksa dosyayı geçersiz say (Hata almamak için)
+            # Eğer ID sütunu eksikse, hata vermemesi için boş döner veya sütunu ekler
             if "ID" not in df.columns:
+                st.warning("⚠️ Veri yapısı güncel değil. Lütfen sikayetler.csv dosyasını silip yeniden başlatın.")
                 return pd.DataFrame()
             return df
         except:
@@ -43,14 +44,15 @@ if menu == "Yeni Şikayet Oluştur":
         telefon = st.text_input("Telefon Numaranız")
 
     secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", mudurlukler)
-    sikayet_turu = st.selectbox("Şikayet Türü", ["Genel Şikayet", "Arıza", "Diğer"])
+    sikayet_turu = st.selectbox("Şikayet Türü", ["Genel Şikayet", "Bilgi Edinme", "Arıza", "Diğer"])
+    adres = st.text_area("Adres Bilgisi")
     detay_metni = st.text_area("Şikayet Detayı")
 
     if st.button("Şikayeti Kaydet"):
         if ad and soyad and eposta:
             simdi = (datetime.now() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M")
-            # Benzersiz ID oluşturma (Hatanın çözümü için şart)
-            yeni_id = str(datetime.now().timestamp()).replace(".", "")[-6:]
+            # Benzersiz ID oluşturma
+            yeni_id = str(datetime.now().timestamp()).replace(".", "")[-8:]
             
             yeni_kayit = {
                 "ID": yeni_id,
@@ -62,25 +64,23 @@ if menu == "Yeni Şikayet Oluştur":
                 "Müdürlük": secilen_mudurluk,
                 "Tür": sikayet_turu,
                 "Detay": detay_metni,
+                "Adres": adres,
                 "Durum": "İnceleniyor",
                 "Belediye_Cevabi": "Henüz cevaplanmadı"
             }
             
             df_yeni = pd.DataFrame([yeni_kayit])
-            # Dosya yoksa başlıklarla beraber oluştur, varsa altına ekle
-            if not os.path.exists("sikayetler.csv") or veri_yukle().empty:
+            if not os.path.exists("sikayetler.csv"):
                 df_yeni.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
             else:
                 df_yeni.to_csv("sikayetler.csv", mode='a', header=False, index=False, encoding="utf-8-sig")
-            
-            st.success(f"Şikayetiniz kaydedildi! Takip No: {yeni_id}")
-            st.rerun()
+            st.success(f"Şikayetiniz başarıyla kaydedildi! Kayıt No: {yeni_id}")
         else:
-            st.error("Lütfen ad, soyad ve e-posta alanlarını doldurun!")
+            st.error("Lütfen gerekli alanları doldurun.")
 
 elif menu == "Şikayetlerimi Görüntüle":
     st.header("🔍 Şikayet Sorgulama")
-    arama = st.text_input("E-posta veya Telefon numaranızı giriniz")
+    arama = st.text_input("E-posta veya Telefon giriniz")
     if arama:
         df_tumu = veri_yukle()
         if not df_tumu.empty:
@@ -93,20 +93,24 @@ elif menu == "Şikayetlerimi Görüntüle":
 # 5. MÜDÜRLÜK YÖNETİM PANELİ
 st.divider()
 st.subheader("🏢 Müdürlük Yönetim Paneli")
-sifre = st.text_input("Yönetici Şifresi:", type="password")
+c1, c2 = st.columns(2)
+with c1:
+    admin_mudur = st.selectbox("Müdürlük:", mudurlukler)
+with c2:
+    sifre = st.text_input("Şifre:", type="password")
 
 if sifre == "1234":
     df_admin = veri_yukle()
     if not df_admin.empty:
-        st.dataframe(df_admin)
-        st.write("---")
-        secilen_id = st.selectbox("İşlem Yapılacak Şikayet ID:", df_admin["ID"].tolist())
-        cevap = st.text_area("Cevap Yazın:")
-        if st.button("Cevabı Gönder"):
-            df_admin.loc[df_admin["ID"] == secilen_id, "Belediye_Cevabi"] = cevap
-            df_admin.loc[df_admin["ID"] == secilen_id, "Durum"] = "Tamamlandı"
-            df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-            st.success("Güncellendi!")
-            st.rerun()
-    else:
-        st.info("Henüz düzgün formatta bir kayıt bulunmuyor.")
+        # Hata aldığın satır burasıydı, artık güvenli filtreleniyor
+        filtreli = df_admin[df_admin["Müdürlük"] == admin_mudur]
+        if not filtreli.empty:
+            st.dataframe(filtreli)
+            st.write("---")
+            # ID listesini güvenli alıyoruz
+            id_listesi = filtreli["ID"].astype(str).tolist()
+            secilen_id = st.selectbox("İşlem Yapılacak ID:", id_listesi)
+            
+            cevap = st.text_area("Cevabınız:")
+            if st.button("Güncelle"):
+                # Ana
