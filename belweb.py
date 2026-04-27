@@ -121,7 +121,7 @@ with col2:
     sifre = st.text_input("Giriş Şifresi:", type="password")
 
 # Örnek bir şifre belirleyelim (İstersen değiştirebilirsin)
-DOGRU_SIFRE = "omu1930" 
+DOGRU_SIFRE = "1234" 
 
 if st.button("Şikayetleri Listele"):
     if sifre == DOGRU_SIFRE:
