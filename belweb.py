@@ -9,7 +9,7 @@ st.set_page_config(page_title="Ondokuzmayıs Belediyesi", layout="wide")
 st.title("🏛️ Ondokuzmayıs Belediyesi")
 st.subheader("Şikayet Yönetim Portalı")
 
-# MÜDÜRLÜKLER VE ÖZEL TÜRLER
+# MÜDÜRLÜKLER VE ÖZEL TÜRLER (Ek Sorular)
 sikayet_turleri_dict = {
     "Yazı İşleri Müdürlüğü": ["Evrak işlemlerinin yavaş ilerlemesi", "Bilgi eksikliği", "Diğer"],
     "Veteriner İşleri Müdürlüğü": ["Sokak hayvanlarının fazlalığı", "Yaralı hayvan", "Aşılama talebi", "Diğer"],
@@ -18,8 +18,11 @@ sikayet_turleri_dict = {
     "İmar ve Şehircilik Müdürlüğü": ["Ruhsat işlemleri", "Kaçak yapı bildirimi", "Diğer"],
     "Mali Hizmetler Müdürlüğü": ["Vergi borcu sorgulama", "Ödeme problemleri", "Diğer"]
 }
-mudurlukler = list(sikayet_turleri_dict.keys()) + ["Emlak ve İstimlak Müdürlüğü", "İklim Değişikliği ve Sıfır Atık Müdürlüğü", "Destek Hizmetleri Müdürlüğü", "Yapı Kontrol Müdürlüğü"]
-mudurlukler = sorted(list(set(mudurlukler)))
+# Listeyi oluştur ve alfabetik sırala
+tum_birimler = sorted(list(set(list(sikayet_turleri_dict.keys()) + [
+    "Emlak ve İstimlak Müdürlüğü", "İklim Değişikliği ve Sıfır Atık Müdürlüğü", 
+    "Destek Hizmetleri Müdürlüğü", "Yapı Kontrol Müdürlüğü"
+])))
 
 def veri_yukle():
     if os.path.exists("sikayetler.csv"):
@@ -29,6 +32,7 @@ def veri_yukle():
             return pd.DataFrame()
     return pd.DataFrame()
 
+# 4. YAN MENÜ (SIDEBAR) - İSİMLER GÜNCELLENDİ
 menu = st.sidebar.radio("İşlem Seçiniz", ["Yeni Şikayet Oluştur", "Şikayetlerimi Görüntüle"])
 
 # --- YENİ ŞİKAYET OLUŞTURMA ---
@@ -37,20 +41,20 @@ if menu == "Yeni Şikayet Oluştur":
     c1, c2 = st.columns(2)
     with c1:
         ad = st.text_input("Adınız")
-        eposta = st.text_input("E-posta")
+        eposta = st.text_input("E-posta Adresiniz")
     with c2:
         soyad = st.text_input("Soyadınız")
-        telefon = st.text_input("Telefon")
+        telefon = st.text_input("Telefon Numaranız")
     
-    secilen_mudurluk = st.selectbox("Müdürlük", mudurlukler)
+    secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", tum_birimler)
     
-    # EK SORULAR (Seçilen müdürlüğe göre değişen türler)
+    # Seçilen müdürlüğe göre ek soruları (Türleri) getir
     tur_listesi = sikayet_turleri_dict.get(secilen_mudurluk, ["Genel Şikayet", "Bilgi Edinme", "Diğer"])
     sikayet_turu = st.selectbox("Şikayet Türü", tur_listesi)
     
-    detay = st.text_area("Şikayetiniz")
+    detay = st.text_area("Şikayet Detayı")
     
-    if st.button("Kaydet"):
+    if st.button("Şikayeti Kaydet"):
         if ad and soyad and eposta:
             simdi = (datetime.now() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M")
             sikayet_id = str(datetime.now().timestamp()).replace(".","")[-6:]
@@ -67,66 +71,66 @@ if menu == "Yeni Şikayet Oluştur":
             else:
                 df_yeni.to_csv("sikayetler.csv", mode='a', header=False, index=False, encoding="utf-8-sig")
             
-            # Başarı mesajı
-            st.success(f"✅ Şikayetiniz başarıyla kaydedildi! Takip ID: {sikayet_id}")
-            st.info("Şikayetinizi 'Şikayetlerimi Görüntüle' menüsünden bu ID veya bilgilerinizle takip edebilirsiniz.")
+            # Başarı mesajı ekranda kalır
+            st.success(f"✅ Şikayetiniz başarıyla kaydedildi! Takip No (ID): {sikayet_id}")
+            st.balloons()
         else:
-            st.error("Lütfen tüm zorunlu alanları (Ad, Soyad, E-posta) doldurunuz.")
+            st.error("Lütfen Ad, Soyad ve E-posta alanlarını boş bırakmayınız.")
 
-# --- ŞİKAYET SORGULAMA ---
+# --- ŞİKAYET GÖRÜNTÜLEME ---
 elif menu == "Şikayetlerimi Görüntüle":
     st.header("🔍 Şikayet Sorgulama")
-    arama = st.text_input("E-posta veya Telefon giriniz")
+    arama = st.text_input("E-posta veya Telefon numaranızı giriniz")
     if arama:
         df = veri_yukle()
         if not df.empty:
             sonuclar = df[(df["E-posta"] == arama) | (df["Telefon"].astype(str) == arama)]
             if not sonuclar.empty:
-                st.write("Şikayetleriniz:")
+                st.info(f"Toplam {len(sonuclar)} adet kaydınız bulundu:")
                 st.table(sonuclar[["Tarih", "Müdürlük", "Tür", "Durum", "Belediye_Cevabi"]])
             else:
-                st.warning("Kayıt bulunamadı.")
+                st.warning("Bu bilgilere ait bir kayıt bulunamadı.")
 
-# --- MÜDÜRLÜK PANELİ ---
+# --- MÜDÜRLÜK PANELİ (ADMIN) ---
 st.divider()
 st.subheader("🏢 Müdürlük Yönetim Paneli")
 cp1, cp2 = st.columns(2)
 with cp1:
-    admin_mudur = st.selectbox("Biriminiz:", mudurlukler, key="admin_birim")
+    admin_birim = st.selectbox("Birim Seçiniz:", tum_birimler, key="adm_birim")
 with cp2:
-    sifre = st.text_input("Şifre:", type="password")
+    sifre = st.text_input("Giriş Şifresi:", type="password")
 
 if sifre == "1234":
     df_admin = veri_yukle()
     if not df_admin.empty:
-        filtreli = df_admin[df_admin["Müdürlük"] == admin_mudur]
+        filtreli = df_admin[df_admin["Müdürlük"] == admin_birim]
         if not filtreli.empty:
-            st.write(f"### {admin_mudur} Kayıtları")
+            st.write(f"### {admin_birim} Şikayetleri")
             st.dataframe(filtreli)
             st.write("---")
             
+            # Düzenleme Alanı
             with st.container():
                 id_listesi = filtreli["ID"].astype(str).tolist()
-                secilen_id = st.selectbox("Düzenlenecek Şikayet ID'sini Seçin:", id_listesi)
+                secilen_id = st.selectbox("İşlem Yapılacak ID'yi Seçin:", id_listesi)
                 
                 ci1, ci2 = st.columns(2)
                 with ci1:
                     yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"])
-                    yönlendir = st.selectbox("Başka Müdürlüğe Gönder:", mudurlukler, index=mudurlukler.index(admin_mudur))
+                    yönlendir = st.selectbox("Müdürlük Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim))
                 with ci2:
-                    cevap = st.text_area("Vatandaşa Yazılacak Cevap:")
+                    cevap = st.text_area("Vatandaşa Cevap Yazın:")
                 
-                if st.button("Değişiklikleri Kaydet"):
+                if st.button("Değişiklikleri Onayla"):
                     idx = df_admin[df_admin["ID"] == secilen_id].index
                     if not idx.empty:
                         df_admin.at[idx[0], "Durum"] = yeni_durum
                         df_admin.at[idx[0], "Müdürlük"] = yönlendir
                         df_admin.at[idx[0], "Belediye_Cevabi"] = cevap
                         df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                        st.success("İşlem başarıyla tamamlandı!")
+                        st.success("İşlem kaydedildi!")
                         st.rerun()
         else:
-            st.info(f"{admin_mudur} birimi için kayıt bulunmuyor.")
+            st.info(f"{admin_birim} birimi için kayıt bulunmuyor.")
     else:
-        st.error("Sistemde henüz kayıtlı şikayet yok.")
-   
+        st.error("Veritabanında henüz kayıtlı şikayet yok.")
