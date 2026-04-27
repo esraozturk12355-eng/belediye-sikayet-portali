@@ -100,30 +100,7 @@ elif menu == "Şikayetlerimi Görüntüle":
                     st.write(f"**Detaylar:** {s['detay']}")
         else:
             st.warning("Kayıt bulunamadı.")
-# --- MÜDÜRLÜK YÖNETİM PANELİ ---
-st.divider() # Araya bir çizgi çeker
-st.subheader("🏢 Müdürlük Yönetim Paneli")
 
-# Müdürlük seçimi
-mudurluk_listesi = ["Fen İşleri", "Park ve Bahçeler", "Temizlik İşleri", "Zabıta", "Ulaşım"]
-secilen_mudurluk = st.selectbox("Lütfen Müdürlüğünüzü Seçin:", mudurluk_listesi)
-
-if st.button("Şikayetleri Görüntüle"):
-    try:
-        # Kayıtlı şikayetleri oku
-        df = pd.read_csv("sikayetler.csv")
-        
-        # Sadece seçilen müdürlüğe ait olanları filtrele
-        filtreli_df = df[df["Müdürlük"] == secilen_mudurluk]
-        
-        if not filtreli_df.empty:
-            st.success(f"{secilen_mudurluk} için toplam {len(filtreli_df)} şikayet bulundu:")
-            st.dataframe(filtreli_df) # Şikayetleri tablo olarak gösterir
-        else:
-            st.info(f"{secilen_mudurluk} birimine henüz bir şikayet iletilmemiş.")
-            
-    except FileNotFoundError:
-        st.error("Henüz hiç şikayet kaydı oluşturulmamış.")
 # --- MÜDÜRLÜK YÖNETİM PANELİ (ŞİFRELİ) ---
 st.divider() 
 st.subheader("🏢 Müdürlük Yönetim Paneli")
