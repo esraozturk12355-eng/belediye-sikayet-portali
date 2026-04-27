@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import os
 import re
-from datetime import datetime  # Zaman eklemek için gerekli
+from datetime import datetime
 
 # 1. SAYFA AYARLARI
-st.set_page_config(page_title="Ondokuzmayıs Belediyesi", layout="wide") # Daha geniş görünüm için wide yaptık
+st.set_page_config(page_title="Ondokuzmayıs Belediyesi", layout="wide")
 
 # 2. ÜST BAŞLIK VE LOGO
 st.title("🏛️ Ondokuzmayıs Belediyesi")
@@ -35,7 +35,6 @@ if menu == "Yeni Şikayet Oluştur":
 
     secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", mudurlukler)
 
-    # Müdürlüğe göre şikayet türleri
     sikayet_turleri_dict = {
         "Yazı İşleri Müdürlüğü": ["Evrak işlemlerinin yavaş ilerlemesi", "Bilgi eksikliği", "Diğer"],
         "Veteriner İşleri Müdürlüğü": ["Sokak hayvanlarının fazlalığı", "Yaralı hayvan", "Aşılama talebi", "Diğer"],
@@ -56,11 +55,10 @@ if menu == "Yeni Şikayet Oluştur":
         elif not ad or not soyad:
             st.error("Lütfen ad ve soyad giriniz!")
         else:
-            # ŞİMDİKİ ZAMANI AL (Yıl-Ay-Gün Saat:Dakika)
             simdi = datetime.now().strftime("%Y-%m-%d %H:%M")
             
             yeni_kayit = {
-                "Tarih": simdi,  # Zaman damgası eklendi
+                "Tarih": simdi,
                 "Ad": ad,
                 "Soyad": soyad,
                 "E-posta": eposta,
@@ -73,6 +71,7 @@ if menu == "Yeni Şikayet Oluştur":
             }
             
             df_yeni = pd.DataFrame([yeni_kayit])
+            # Kayıt esnasında utf-8-sig kullanarak Excel uyumluluğunu artırıyoruz
             if not os.path.exists("sikayetler.csv"):
                 df_yeni.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
             else:
@@ -86,14 +85,14 @@ elif menu == "Şikayetlerimi Görüntüle":
 
     if arama:
         if os.path.exists("sikayetler.csv"):
-            df_tumu = pd.read_csv("sikayetler.csv")
-            # Tarihe göre en yeniden en eskiye sırala
+            # Bozuk satırları atlaması için on_bad_lines ekledik
+            df_tumu = pd.read_csv("sikayetler.csv", on_bad_lines='skip')
             df_tumu = df_tumu.sort_values(by="Tarih", ascending=False)
             
             sonuclar = df_tumu[(df_tumu["E-posta"] == arama) | (df_tumu["Telefon"].astype(str) == arama)]
             
             if not sonuclar.empty:
-                st.write(f"Toplam {len(sonuclar)} adet kaydınız bulundu (En yeni en üstte):")
+                st.write(f"Toplam {len(sonuclar)} adet kaydınız bulundu:")
                 st.table(sonuclar[["Tarih", "Müdürlük", "Tür", "Durum", "Detay"]])
             else:
                 st.warning("Kayıt bulunamadı.")
@@ -117,14 +116,14 @@ if st.button("Müdürlük Kayıtlarını Listele"):
         if not os.path.exists("sikayetler.csv"):
             st.warning("Henüz şikayet dosyası oluşmamış.")
         else:
-            df_admin = pd.read_csv("sikayetler.csv")
-            # Tarihe göre sırala
+            # Buraya da on_bad_lines ekledik
+            df_admin = pd.read_csv("sikayetler.csv", on_bad_lines='skip')
             df_admin = df_admin.sort_values(by="Tarih", ascending=False)
             
             filtreli = df_admin[df_admin["Müdürlük"] == admin_mudur]
             
             if not filtreli.empty:
-                st.success(f"{admin_mudur} - Toplam {len(filtreli)} şikayet (Yeniye göre sıralandı):")
+                st.success(f"{admin_mudur} - Toplam {len(filtreli)} şikayet:")
                 st.dataframe(filtreli)
             else:
                 st.info(f"{admin_mudur} için henüz bir kayıt bulunmuyor.")
