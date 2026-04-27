@@ -40,7 +40,7 @@ if menu == "Yeni Şikayet Oluştur":
     with c1:
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
-    with col2 := c2: # Walrus operator for neatness
+    with c2: # Hatalı satır burada düzeltildi
         soyad = st.text_input("Soyadınız")
         telefon = st.text_input("Telefon Numaranız")
     
@@ -77,7 +77,6 @@ if menu == "Yeni Şikayet Oluştur":
             else:
                 df_yeni.to_csv("sikayetler.csv", mode='a', header=False, index=False, encoding="utf-8-sig")
             
-            # SADELEŞTİRİLMİŞ MESAJ
             st.success(f"✅ Şikayetiniz başarıyla alınmıştır.")
             st.info(f"Takip Numaranız (ID): **{sikayet_id}**")
             st.balloons()
@@ -126,7 +125,6 @@ if sifre == "1234":
                 if st.button("Onayla"):
                     idx = df_admin[df_admin["ID"] == secilen_id].index
                     if not idx.empty:
-                        # Yönlendirme Sıra No Mantığı
                         if df_admin.at[idx[0], "Müdürlük"] != yönlendir:
                             hedef = df_admin[df_admin["Müdürlük"] == yönlendir]
                             df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
