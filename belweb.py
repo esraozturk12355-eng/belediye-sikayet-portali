@@ -124,3 +124,41 @@ if st.button("Şikayetleri Görüntüle"):
             
     except FileNotFoundError:
         st.error("Henüz hiç şikayet kaydı oluşturulmamış.")
+# --- MÜDÜRLÜK YÖNETİM PANELİ (ŞİFRELİ) ---
+st.divider() 
+st.subheader("🏢 Müdürlük Yönetim Paneli")
+
+# Tüm müdürlüklerin listesi
+mudurluk_listesi = [
+    "Yazı İşleri Müdürlüğü", "Emlak ve İstimlak Müdürlüğü", "Mali Hizmetler Müdürlüğü",
+    "Veteriner İşleri Müdürlüğü", "İmar ve Şehircilik Müdürlüğü",
+    "İklim Değişikliği ve Sıfır Atık Müdürlüğü", "Fen İşleri Müdürlüğü",
+    "Destek Hizmetleri Müdürlüğü", "Zabıta Müdürlüğü", "Yapı Kontrol Müdürlüğü"
+]
+
+# Giriş Alanları
+col1, col2 = st.columns(2)
+with col1:
+    secilen_mudurluk = st.selectbox("Müdürlük Seçin:", mudurluk_listesi)
+with col2:
+    sifre = st.text_input("Giriş Şifresi:", type="password")
+
+# Örnek bir şifre belirleyelim (İstersen değiştirebilirsin)
+DOGRU_SIFRE = "omu1930" 
+
+if st.button("Şikayetleri Listele"):
+    if sifre == DOGRU_SIFRE:
+        try:
+            df = pd.read_csv("sikayetler.csv")
+            # Seçilen müdürlüğe göre filtrele
+            filtreli_df = df[df["Müdürlük"] == secilen_mudurluk]
+            
+            if not filtreli_df.empty:
+                st.success(f"{secilen_mudurluk} birimine ait {len(filtreli_df)} kayıt bulundu.")
+                st.table(filtreli_df) # Daha düzenli görünmesi için tablo formatı
+            else:
+                st.info(f"{secilen_mudurluk} için henüz bir kayıt yok.")
+        except FileNotFoundError:
+            st.error("Henüz sisteme hiç şikayet girilmemiş.")
+    else:
+        st.error("Hatalı şifre! Lütfen tekrar deneyin.")
