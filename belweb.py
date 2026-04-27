@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import os
 import re
-from datetime import datetime, timedelta  # Zaman ve fark ayarı için
+from datetime import datetime, timedelta
 
 # 1. SAYFA AYARLARI
 st.set_page_config(page_title="Ondokuzmayıs Belediyesi", layout="wide")
 
-# 2. ÜST BAŞLIK VE LOGO
+# 2. ÜST BAŞLIK
 st.title("🏛️ Ondokuzmayıs Belediyesi")
 st.subheader("Şikayet Yönetim Portalı")
 
@@ -19,115 +19,96 @@ mudurlukler = [
     "Destek Hizmetleri Müdürlüğü", "Zabıta Müdürlüğü", "Yapı Kontrol Müdürlüğü"
 ]
 
-# 4. YAN MENÜ (SIDEBAR)
+# 4. YAN MENÜ
 menu = st.sidebar.radio("İşlem Seçiniz", ["Yeni Şikayet Oluştur", "Şikayetlerimi Görüntüle"])
 
 if menu == "Yeni Şikayet Oluştur":
     st.header("📝 Yeni Şikayet Formu")
-
     col1, col2 = st.columns(2)
     with col1:
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
     with col2:
         soyad = st.text_input("Soyadınız")
-        telefon = st.text_input("Telefon Numaranız (10-11 haneli)")
+        telefon = st.text_input("Telefon Numaranız")
 
     secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", mudurlukler)
-
-    sikayet_turleri_dict = {
-        "Yazı İşleri Müdürlüğü": ["Evrak işlemlerinin yavaş ilerlemesi", "Bilgi eksikliği", "Diğer"],
-        "Veteriner İşleri Müdürlüğü": ["Sokak hayvanlarının fazlalığı", "Yaralı hayvan", "Aşılama talebi", "Diğer"],
-        "Fen İşleri Müdürlüğü": ["Yol bozukluğu", "Kaldırım hasarı", "Altyapı sorunu", "Diğer"],
-        "Zabıta Müdürlüğü": ["Gürültü", "Kaldırım işgali", "Kaçak satış", "Diğer"],
-    }
-
-    tur_listesi = sikayet_turleri_dict.get(secilen_mudurluk, ["Genel Şikayet", "Diğer"])
-    sikayet_turu = st.selectbox("Şikayet Türü", tur_listesi)
-    adres = st.text_area("Adres Bilgisi")
     detay_metni = st.text_area("Şikayet Detayı")
 
     if st.button("Şikayeti Kaydet"):
-        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", eposta):
-            st.error("Lütfen geçerli bir e-posta giriniz!")
-        elif not re.match(r"^\d{10,11}$", telefon):
-            st.error("Lütfen geçerli bir telefon giriniz!")
-        elif not ad or not soyad:
-            st.error("Lütfen ad ve soyad alanlarını doldurunuz!")
+        if not ad or not eposta or not telefon:
+            st.error("Lütfen alanları doldurunuz!")
         else:
-            # TÜRKİYE SAATİ AYARI: Sunucu saatine 3 saat ekliyoruz
-            turkiye_saati = datetime.now() + timedelta(hours=3)
-            simdi = turkiye_saati.strftime("%Y-%m-%d %H:%M")
-            
+            simdi = (datetime.now() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M")
             yeni_kayit = {
+                "ID": str(datetime.now().timestamp()).split(".")[0], # Her şikayete eşsiz ID
                 "Tarih": simdi,
                 "Ad": ad,
                 "Soyad": soyad,
                 "E-posta": eposta,
                 "Telefon": telefon,
                 "Müdürlük": secilen_mudurluk,
-                "Tür": sikayet_turu,
                 "Detay": detay_metni,
-                "Adres": adres,
                 "Durum": "İnceleniyor"
             }
-            
             df_yeni = pd.DataFrame([yeni_kayit])
             if not os.path.exists("sikayetler.csv"):
                 df_yeni.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
             else:
                 df_yeni.to_csv("sikayetler.csv", mode='a', header=False, index=False, encoding="utf-8-sig")
             
-            st.success(f"Şikayetiniz {simdi} itibarıyla başarıyla sisteme kaydedildi!")
+            st.success(f"Şikayetiniz Kaydedildi. Kişinin {eposta} adresine bilgilendirme mesajı gönderildi! 📩")
 
 elif menu == "Şikayetlerimi Görüntüle":
     st.header("🔍 Şikayet Sorgulama")
-    arama = st.text_input("E-posta veya Telefon numaranızı giriniz")
-
-    if arama:
-        if os.path.exists("sikayetler.csv"):
-            df_tumu = pd.read_csv("sikayetler.csv", on_bad_lines='skip')
-            # Tarih sütunu varsa sırala
-            if "Tarih" in df_tumu.columns:
-                df_tumu = df_tumu.sort_values(by="Tarih", ascending=False)
-            
-            sonuclar = df_tumu[(df_tumu["E-posta"] == arama) | (df_tumu["Telefon"].astype(str) == arama)]
-            
-            if not sonuclar.empty:
-                st.write(f"Toplam {len(sonuclar)} adet kaydınız bulundu (En yeni en üstte):")
-                st.table(sonuclar)
-            else:
-                st.warning("Kayıt bulunamadı.")
+    arama = st.text_input("E-posta veya Telefon giriniz")
+    if arama and os.path.exists("sikayetler.csv"):
+        df_tumu = pd.read_csv("sikayetler.csv", on_bad_lines='skip')
+        sonuclar = df_tumu[(df_tumu["E-posta"] == arama) | (df_tumu["Telefon"].astype(str) == arama)]
+        if not sonuclar.empty:
+            st.table(sonuclar[["Tarih", "Müdürlük", "Detay", "Durum"]])
         else:
-            st.info("Sistemde henüz kayıtlı şikayet bulunmuyor.")
+            st.warning("Kayıt bulunamadı.")
 
-# 5. MÜDÜRLÜK YÖNETİM PANELİ
-st.divider() 
+# 5. MÜDÜRLÜK YÖNETİM PANELİ (GELİŞMİŞ)
+st.divider()
 st.subheader("🏢 Müdürlük Yönetim Paneli")
+col_a, col_b = st.columns(2)
+with col_a:
+    admin_mudur = st.selectbox("Müdürlük Seçin:", mudurlukler, key="adm")
+with col_b:
+    sifre = st.text_input("Şifre:", type="password")
 
-col_admin1, col_admin2 = st.columns(2)
-with col_admin1:
-    admin_mudur = st.selectbox("Müdürlük Seçin:", mudurlukler, key="admin_secim")
-with col_admin2:
-    sifre = st.text_input("Giriş Şifresi:", type="password", key="admin_sifre")
-
-DOGRU_SIFRE = "1234" 
-
-if st.button("Müdürlük Kayıtlarını Listele"):
-    if sifre == DOGRU_SIFRE:
-        if not os.path.exists("sikayetler.csv"):
-            st.warning("Veri dosyası henüz oluşmamış. Lütfen önce bir şikayet kaydı yapın.")
+if sifre == "1234":
+    if os.path.exists("sikayetler.csv"):
+        df_admin = pd.read_csv("sikayetler.csv", on_bad_lines='skip')
+        # Sadece ilgili müdürlüğün şikayetlerini filtrele
+        filtreli = df_admin[df_admin["Müdürlük"] == admin_mudur].copy()
+        
+        if not filtreli.empty:
+            st.success(f"{admin_mudur} birimine ait kayıtlar:")
+            st.dataframe(filtreli)
+            
+            # --- DURUM GÜNCELLEME KISMI ---
+            st.write("---")
+            st.write("🔧 **Şikayet Durumu Güncelle**")
+            sikayet_id = st.selectbox("Güncellenecek Şikayet ID'sini Seçin:", filtreli["ID"].tolist())
+            yeni_durum = st.selectbox("Yeni Durum:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı"])
+            
+            if st.button("Durumu Güncelle ve Kişiye Bildir"):
+                # CSV'de ilgili satırı bul ve güncelle
+                df_admin.loc[df_admin["ID"].astype(str) == str(sikayet_id), "Durum"] = yeni_durum
+                df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
+                
+                # Kişi bilgilerini al (Bildirim simülasyonu için)
+                kisi = df_admin[df_admin["ID"].astype(str) == str(sikayet_id)].iloc[0]
+                
+                st.balloons() # Kutlama efekti
+                st.success(f"Şikayet durumu '{yeni_durum}' olarak güncellendi.")
+                st.info(f"📢 BİLDİRİM GÖNDERİLDİ: Sayın {kisi['Ad']} {kisi['Soyad']}, {kisi['Müdürlük']} birimine yaptığınız şikayet '{yeni_durum}' olarak işaretlenmiştir.")
         else:
-            df_admin = pd.read_csv("sikayetler.csv", on_bad_lines='skip')
-            if "Tarih" in df_admin.columns:
-                df_admin = df_admin.sort_values(by="Tarih", ascending=False)
-            
-            filtreli = df_admin[df_admin["Müdürlük"] == admin_mudur]
-            
-            if not filtreli.empty:
-                st.success(f"{admin_mudur} birimine ait {len(filtreli)} şikayet listelendi.")
-                st.dataframe(filtreli)
-            else:
-                st.info(f"{admin_mudur} için henüz bir şikayet kaydı bulunmuyor.")
+            st.info("Bu birime ait şikayet bulunmuyor.")
     else:
-        st.error("Hatalı şifre!")
+        st.warning("Henüz veritabanı oluşmamış.")
+elif sifre != "":
+    st.error("Hatalı şifre.")
