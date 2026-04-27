@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import re
-from datetime import datetime, timedelta  # Zaman ve fark ayarı için
+from datetime import datetime, timedelta
 
 # 1. SAYFA AYARLARI
 st.set_page_config(page_title="Ondokuzmayıs Belediyesi", layout="wide")
@@ -24,7 +24,6 @@ menu = st.sidebar.radio("İşlem Seçiniz", ["Yeni Şikayet Oluştur", "Şikayet
 
 if menu == "Yeni Şikayet Oluştur":
     st.header("📝 Yeni Şikayet Formu")
-
     col1, col2 = st.columns(2)
     with col1:
         ad = st.text_input("Adınız")
@@ -34,14 +33,12 @@ if menu == "Yeni Şikayet Oluştur":
         telefon = st.text_input("Telefon Numaranız (10-11 haneli)")
 
     secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", mudurlukler)
-
     sikayet_turleri_dict = {
         "Yazı İşleri Müdürlüğü": ["Evrak işlemlerinin yavaş ilerlemesi", "Bilgi eksikliği", "Diğer"],
         "Veteriner İşleri Müdürlüğü": ["Sokak hayvanlarının fazlalığı", "Yaralı hayvan", "Aşılama talebi", "Diğer"],
         "Fen İşleri Müdürlüğü": ["Yol bozukluğu", "Kaldırım hasarı", "Altyapı sorunu", "Diğer"],
         "Zabıta Müdürlüğü": ["Gürültü", "Kaldırım işgali", "Kaçak satış", "Diğer"],
     }
-
     tur_listesi = sikayet_turleri_dict.get(secilen_mudurluk, ["Genel Şikayet", "Diğer"])
     sikayet_turu = st.selectbox("Şikayet Türü", tur_listesi)
     adres = st.text_area("Adres Bilgisi")
@@ -50,16 +47,15 @@ if menu == "Yeni Şikayet Oluştur":
     if st.button("Şikayeti Kaydet"):
         if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", eposta):
             st.error("Lütfen geçerli bir e-posta giriniz!")
-        elif not re.match(r"^\d{10,11}$", telefon):
-            st.error("Lütfen geçerli bir telefon giriniz!")
         elif not ad or not soyad:
             st.error("Lütfen ad ve soyad alanlarını doldurunuz!")
         else:
-            # TÜRKİYE SAATİ AYARI: Sunucu saatine 3 saat ekliyoruz
-            turkiye_saati = datetime.now() + timedelta(hours=3)
-            simdi = turkiye_saati.strftime("%Y-%m-%d %H:%M")
+            simdi = (datetime.now() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M")
+            # Her şikayet için benzersiz bir ID oluşturuyoruz
+            sikayet_id = str(datetime.now().timestamp()).replace(".","")
             
             yeni_kayit = {
+                "ID": sikayet_id,
                 "Tarih": simdi,
                 "Ad": ad,
                 "Soyad": soyad,
@@ -69,7 +65,8 @@ if menu == "Yeni Şikayet Oluştur":
                 "Tür": sikayet_turu,
                 "Detay": detay_metni,
                 "Adres": adres,
-                "Durum": "İnceleniyor"
+                "Durum": "İnceleniyor",
+                "Belediye_Cevabi": "Henüz cevaplanmadı"
             }
             
             df_yeni = pd.DataFrame([yeni_kayit])
@@ -78,7 +75,7 @@ if menu == "Yeni Şikayet Oluştur":
             else:
                 df_yeni.to_csv("sikayetler.csv", mode='a', header=False, index=False, encoding="utf-8-sig")
             
-            st.success(f"Şikayetiniz {simdi} itibarıyla başarıyla sisteme kaydedildi!")
+            st.success(f"Şikayetiniz {simdi} itibarıyla başarıyla sisteme kaydedildi! Takip ID: {sikayet_id}")
 
 elif menu == "Şikayetlerimi Görüntüle":
     st.header("🔍 Şikayet Sorgulama")
@@ -87,19 +84,15 @@ elif menu == "Şikayetlerimi Görüntüle":
     if arama:
         if os.path.exists("sikayetler.csv"):
             df_tumu = pd.read_csv("sikayetler.csv", on_bad_lines='skip')
-            # Tarih sütunu varsa sırala
-            if "Tarih" in df_tumu.columns:
-                df_tumu = df_tumu.sort_values(by="Tarih", ascending=False)
-            
             sonuclar = df_tumu[(df_tumu["E-posta"] == arama) | (df_tumu["Telefon"].astype(str) == arama)]
             
             if not sonuclar.empty:
-                st.write(f"Toplam {len(sonuclar)} adet kaydınız bulundu (En yeni en üstte):")
-                st.table(sonuclar)
+                st.write(f"Toplam {len(sonuclar)} adet kaydınız bulundu:")
+                # Müşterinin görmesini istediğimiz sütunları seçiyoruz
+                gosterilecek = sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi", "Detay"]]
+                st.dataframe(gosterilecek, use_container_width=True)
             else:
                 st.warning("Kayıt bulunamadı.")
-        else:
-            st.info("Sistemde henüz kayıtlı şikayet bulunmuyor.")
 
 # 5. MÜDÜRLÜK YÖNETİM PANELİ
 st.divider() 
@@ -111,23 +104,39 @@ with col_admin1:
 with col_admin2:
     sifre = st.text_input("Giriş Şifresi:", type="password", key="admin_sifre")
 
-DOGRU_SIFRE = "1234" 
+if sifre == "1234":
+    if os.path.exists("sikayetler.csv"):
+        df_admin = pd.read_csv("sikayetler.csv", dtype={'ID': str})
+        filtreli = df_admin[df_admin["Müdürlük"] == admin_mudur]
+        
+        if not filtreli.empty:
+            st.write(f"### {admin_mudur} Şikayet Listesi")
+            st.dataframe(filtreli)
+            
+            st.write("---")
+            st.write("#### ✍️ Şikayet İşlemi Yap")
+            
+            # İşlem yapılacak şikayeti seç
+            secilen_id = st.selectbox("İşlem Yapılacak Şikayet ID:", filtreli["ID"].tolist())
+            
+            col_islem1, col_islem2 = st.columns(2)
+            with col_islem1:
+                yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"])
+                yonlendirilecek_birim = st.selectbox("Müdürlük Yönlendir (Hatalıysa):", mudurlukler, index=mudurlukler.index(admin_mudur))
+            
+            with col_islem2:
+                cevap_metni = st.text_area("Vatandaşa Cevap Yazın:")
 
-if st.button("Müdürlük Kayıtlarını Listele"):
-    if sifre == DOGRU_SIFRE:
-        if not os.path.exists("sikayetler.csv"):
-            st.warning("Veri dosyası henüz oluşmamış. Lütfen önce bir şikayet kaydı yapın.")
+            if st.button("Değişiklikleri Kaydet"):
+                # CSV'yi güncelle
+                df_admin.loc[df_admin['ID'] == secilen_id, 'Durum'] = yeni_durum
+                df_admin.loc[df_admin['ID'] == secilen_id, 'Belediye_Cevabi'] = cevap_metni
+                df_admin.loc[df_admin['ID'] == secilen_id, 'Müdürlük'] = yonlendirilecek_birim
+                
+                df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
+                st.success("Şikayet başarıyla güncellendi!")
+                st.rerun() # Sayfayı yenile
         else:
-            df_admin = pd.read_csv("sikayetler.csv", on_bad_lines='skip')
-            if "Tarih" in df_admin.columns:
-                df_admin = df_admin.sort_values(by="Tarih", ascending=False)
-            
-            filtreli = df_admin[df_admin["Müdürlük"] == admin_mudur]
-            
-            if not filtreli.empty:
-                st.success(f"{admin_mudur} birimine ait {len(filtreli)} şikayet listelendi.")
-                st.dataframe(filtreli)
-            else:
-                st.info(f"{admin_mudur} için henüz bir şikayet kaydı bulunmuyor.")
+            st.info(f"{admin_mudur} için kayıt bulunmuyor.")
     else:
-        st.error("Hatalı şifre!")
+        st.warning("Veri dosyası henüz oluşmamış.")
