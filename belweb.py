@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import re # E-posta kontrolü için gerekli kütüphane
 from datetime import datetime, timedelta
 
 # 1. SAYFA AYARLARI
@@ -40,7 +41,7 @@ if menu == "Yeni Şikayet Oluştur":
     with c1:
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
-    with c2: # Hatalı satır burada düzeltildi
+    with c2: 
         soyad = st.text_input("Soyadınız")
         telefon = st.text_input("Telefon Numaranız")
     
@@ -50,7 +51,14 @@ if menu == "Yeni Şikayet Oluştur":
     detay = st.text_area("Şikayet Detayı")
     
     if st.button("Şikayeti Kaydet"):
-        if ad and soyad and eposta:
+        # E-posta formatı kontrolü (Regex)
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        
+        if not (ad and soyad and eposta):
+            st.error("Lütfen tüm alanları doldurunuz.")
+        elif not re.match(email_pattern, eposta):
+            st.error("⚠️ Doğru mail adresi giriniz! (Örn: isim@gmail.com)")
+        else:
             df_mevcut = veri_yukle()
             
             # ARKA PLANDA MÜDÜRLÜĞE ÖZEL SIRA NO HESAPLAMA
@@ -80,8 +88,6 @@ if menu == "Yeni Şikayet Oluştur":
             st.success(f"✅ Şikayetiniz başarıyla alınmıştır.")
             st.info(f"Takip Numaranız (ID): **{sikayet_id}**")
             st.balloons()
-        else:
-            st.error("Lütfen tüm alanları doldurunuz.")
 
 # --- ŞİKAYET GÖRÜNTÜLEME ---
 elif menu == "Şikayetlerimi Görüntüle":
