@@ -16,14 +16,14 @@ st.set_page_config(
 # --- ÜST BAŞLIK VE LOGO ALANI ---
 c1, c2 = st.columns([1, 6]) 
 with c1:
-    # Yüklediğin dosya ismini buraya tam olarak yazdık
-    logo_dosyasi = "kişilogo.jfif"
+    # İsmi Türkçe karakter içermeyen 'logo.jfif' yaptık
+    logo_dosyasi = "logo.jfif"
     
     if os.path.exists(logo_dosyasi):
-        st.image(logo_dosyasi, width=100)
+        st.image(logo_dosyasi, width=120)
     else:
-        # Eğer dosya okunamazsa uygulama çökmesin diye ikon koyuyoruz
-        st.write("## 🏛️") 
+        st.write("# 🏛️") 
+
 with c2:
     st.title("Ondokuzmayıs Belediyesi")
     st.subheader("Şikayet Yönetim Portalı")
@@ -149,35 +149,37 @@ with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
     if sifre == "1234":
         df_admin = veri_yukle()
         if not df_admin.empty:
-            filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
-            if not filtreli.empty:
-                st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
-                st.write("---")
-                secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist(), key="islem_id")
-                
-                ci1, ci2 = st.columns(2)
-                with ci1:
-                    yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"], key="durum_up")
-                    yonlendir = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim), key="yonlendir_up")
-                with ci2:
-                    cevap_notu = st.text_area("Cevap Notu:", key="cevap_up")
-                
-                if st.button("Değişiklikleri Onayla"):
-                    idx = df_admin[df_admin["ID"] == secilen_id].index
-                    alici_ad = df_admin.at[idx[0], "Ad"]
-                    alici_tel = df_admin.at[idx[0], "Telefon"]
+            if "Müdürlük" in df_admin.columns:
+                filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
+                if not filtreli.empty:
+                    st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
+                    st.write("---")
+                    secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist(), key="islem_id")
                     
-                    if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
-                        hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
-                        df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
+                    ci1, ci2 = st.columns(2)
+                    with ci1:
+                        yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"], key="durum_up")
+                        yonlendir = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim), key="yonlendir_up")
+                    with ci2:
+                        cevap_notu = st.text_area("Cevap Notu:", key="cevap_up")
                     
-                    df_admin.at[idx[0], "Durum"] = yeni_durum
-                    df_admin.at[idx[0], "Müdürlük"] = yonlendir
-                    df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
-                    df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                    
-                    st.success("Kayıt güncellendi!")
-                    guncel_mesaj = f"Sayın {alici_ad}, {secilen_id} numaralı şikayetiniz güncellenmiştir.\nYeni Durum: {yeni_durum}\nCevap: {cevap_notu}"
-                    link = wp_link_olustur(alici_tel, guncel_mesaj)
-                    st.markdown(f'''<a href="{link}" target="_blank"><button style="background-color: #25D366; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">📱 Güncellemeyi WhatsApp'tan Gönder</button></a>''', unsafe_allow_html=True)
-                    st.rerun()
+                    if st.button("Değişiklikleri Onayla"):
+                        idx = df_admin[df_admin["ID"] == secilen_id].index
+                        if not idx.empty:
+                            alici_ad = df_admin.at[idx[0], "Ad"]
+                            alici_tel = df_admin.at[idx[0], "Telefon"]
+                            
+                            if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
+                                hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
+                                df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
+                            
+                            df_admin.at[idx[0], "Durum"] = yeni_durum
+                            df_admin.at[idx[0], "Müdürlük"] = yonlendir
+                            df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
+                            df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
+                            
+                            st.success("Kayıt güncellendi!")
+                            guncel_mesaj = f"Sayın {alici_ad}, {secilen_id} numaralı şikayetiniz güncellenmiştir.\nYeni Durum: {yeni_durum}\nCevap: {cevap_notu}"
+                            link = wp_link_olustur(alici_tel, guncel_mesaj)
+                            st.markdown(f'''<a href="{link}" target="_blank"><button style="background-color: #25D366; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">📱 Güncellemeyi WhatsApp'tan Gönder</button></a>''', unsafe_allow_html=True)
+                            # st.rerun() buton basıldığında WhatsApp linki görünsün diye bu satırı kapattık veya bir uyarı ekledik.
