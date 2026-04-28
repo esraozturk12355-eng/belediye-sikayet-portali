@@ -32,6 +32,7 @@ def veri_yukle():
             return pd.DataFrame()
     return pd.DataFrame()
 
+# TELEFON TEMİZLEME FONKSİYONU
 def tel_temizle(tel):
     tel = str(tel).strip()
     if tel.startswith("0"):
@@ -48,8 +49,7 @@ if menu == "Yeni Şikayet Oluştur":
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
         
-        # --- ÖZEL E-POSTA KONTROLÜ (Gmail, Hotmail, Outlook vb. Zorunlu) ---
-        # Sadece bilinen büyük servisleri kabul eder
+        # --- ANLIK E-POSTA KONTROLÜ (Sadece Uyarı Metni) ---
         email_pattern = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net)$'
         is_email_valid = False
         
@@ -58,7 +58,7 @@ if menu == "Yeni Şikayet Oluştur":
                 st.success("E-posta formatı geçerli. ✅")
                 is_email_valid = True
             else:
-                st.warning("⚠️ Lütfen geçerli bir e-posta adresi giriniz (gmail, hotmail vb.)")
+                st.warning("⚠️ Lütfen geçerli bir e-posta adresi giriniz!")
                 is_email_valid = False
 
     with c2: 
@@ -74,7 +74,7 @@ if menu == "Yeni Şikayet Oluştur":
         if not (ad and soyad and eposta and telefon_input):
             st.error("Lütfen tüm alanları doldurunuz.")
         elif not is_email_valid:
-            st.error("Hatalı veya desteklenmeyen e-posta adresi!")
+            st.error("Hatalı e-posta adresi ile kayıt yapılamaz!")
         else:
             temiz_tel = tel_temizle(telefon_input)
             df_mevcut = veri_yukle()
