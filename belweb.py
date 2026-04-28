@@ -16,13 +16,17 @@ st.set_page_config(
 # --- ÜST BAŞLIK VE LOGO ALANI ---
 c1, c2 = st.columns([1, 6]) 
 with c1:
-    # Samsun Ondokuzmayıs Belediyesi Logosu
-    st.image("https://www.19mayis.bel.tr/images/logo.png", width=100) 
+    # Yüklediğin dosya ismini buraya tam olarak yazdık
+    logo_dosyasi = "kişilogo.jfif"
+    
+    if os.path.exists(logo_dosyasi):
+        st.image(logo_dosyasi, width=100)
+    else:
+        # Eğer dosya okunamazsa uygulama çökmesin diye ikon koyuyoruz
+        st.write("## 🏛️") 
 with c2:
     st.title("Ondokuzmayıs Belediyesi")
     st.subheader("Şikayet Yönetim Portalı")
-
-st.divider()
 
 # --- WHATSAPP LINK OLUSTURMA FONKSIYONU ---
 def wp_link_olustur(telefon, mesaj):
