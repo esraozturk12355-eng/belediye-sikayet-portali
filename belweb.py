@@ -27,10 +27,17 @@ tum_birimler = sorted(list(set(list(sikayet_turleri_dict.keys()) + [
 def veri_yukle():
     if os.path.exists("sikayetler.csv"):
         try:
-            return pd.read_csv("sikayetler.csv", dtype={'ID': str}, on_bad_lines='skip', index_col=False, encoding="utf-8-sig")
+            return pd.read_csv("sikayetler.csv", dtype={'ID': str, 'Telefon': str}, on_bad_lines='skip', index_col=False, encoding="utf-8-sig")
         except:
             return pd.DataFrame()
     return pd.DataFrame()
+
+# TELEFON NUMARASI TEMİZLEME FONKSİYONU (Başındaki 0'ı siler)
+def tel_temizle(tel):
+    tel = str(tel).strip()
+    if tel.startswith("0"):
+        return tel[1:]
+    return tel
 
 menu = st.sidebar.radio("İşlem Seçiniz", ["Yeni Şikayet Oluştur", "Şikayetlerimi Görüntüle"])
 
@@ -42,21 +49,19 @@ if menu == "Yeni Şikayet Oluştur":
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
         
-        # --- ANLIK E-POSTA KONTROLÜ ---
         email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         is_email_valid = False
-        
-        if eposta != "": # Boş değilse kontrol et
+        if eposta != "": 
             if re.match(email_pattern, eposta):
                 st.success("E-posta formatı geçerli. ✅")
                 is_email_valid = True
             else:
-                st.warning("⚠️ Lütfen geçerli bir e-posta adresi giriniz! (Örn: isim@gmail.com)")
+                st.warning("⚠️ Lütfen geçerli bir e-posta adresi giriniz!")
                 is_email_valid = False
 
     with c2: 
         soyad = st.text_input("Soyadınız")
-        telefon = st.text_input("Telefon Numaranız")
+        telefon_input = st.text_input("Telefon Numaranız")
     
     secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", tum_birimler)
     tur_listesi = sikayet_turleri_dict.get(secilen_mudurluk, ["Genel Şikayet", "Bilgi Edinme", "Diğer"])
@@ -64,11 +69,14 @@ if menu == "Yeni Şikayet Oluştur":
     detay = st.text_area("Şikayet Detayı")
     
     if st.button("Şikayeti Kaydet"):
-        if not (ad and soyad and eposta):
+        if not (ad and soyad and eposta and telefon_input):
             st.error("Lütfen tüm alanları doldurunuz.")
         elif not is_email_valid:
             st.error("Hatalı e-posta adresi ile kayıt yapılamaz!")
         else:
+            # Telefonu temizle (0 olsa da olmasa da başındaki 0 silinerek kaydedilir)
+            temiz_tel = tel_temizle(telefon_input)
+            
             df_mevcut = veri_yukle()
             yeni_sira_no = 1
             if not df_mevcut.empty and "Müdürlük" in df_mevcut.columns and "Sıra_No" in df_mevcut.columns:
@@ -81,7 +89,7 @@ if menu == "Yeni Şikayet Oluştur":
             
             yeni_kayit = {
                 "ID": sikayet_id, "Sıra_No": yeni_sira_no, "Tarih": simdi,
-                "Ad": ad, "Soyad": soyad, "E-posta": eposta, "Telefon": telefon,
+                "Ad": ad, "Soyad": soyad, "E-posta": eposta, "Telefon": temiz_tel,
                 "Müdürlük": secilen_mudurluk, "Tür": sikayet_turu,
                 "Detay": detay.replace(",", " "), "Durum": "İnceleniyor",
                 "Belediye_Cevabi": "Henüz cevaplanmadı"
@@ -102,11 +110,18 @@ elif menu == "Şikayetlerimi Görüntüle":
     st.header("🔍 Şikayet Sorgulama")
     arama = st.text_input("E-posta veya Telefon numaranızı giriniz")
     if arama:
+        temiz_arama = tel_temizle(arama) # Arama yapılırken de temizlenir
         df = veri_yukle()
         if not df.empty:
-            sonuclar = df[(df["E-posta"] == arama) | (df["Telefon"].astype(str) == arama)]
+            # Telefon sütununu string yap ve temizle
+            df['Telefon_Temiz'] = df['Telefon'].apply(tel_temizle)
+            
+            sonuclar = df[(df["E-posta"] == arama) | (df["Telefon_Temiz"] == temiz_arama)]
+            
             if not sonuclar.empty:
                 st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
+            else:
+                st.warning("Kayıt bulunamadı.")
 
 # --- MÜDÜRLÜK PANELİ ---
 st.divider()
@@ -124,7 +139,7 @@ if sifre == "1234":
             filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
             if not filtreli.empty:
                 st.write(f"### {admin_birim} Şikayetleri")
-                st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Durum", "Detay", "Belediye_Cevabi"]])
+                st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
                 
                 st.write("---")
                 secilen_id = st.selectbox("İşlem Yapılacak ID:", filtreli["ID"].tolist())
