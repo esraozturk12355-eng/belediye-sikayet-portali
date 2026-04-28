@@ -32,7 +32,6 @@ def veri_yukle():
             return pd.DataFrame()
     return pd.DataFrame()
 
-# TELEFON NUMARASI TEMİZLEME FONKSİYONU (Başındaki 0'ı siler)
 def tel_temizle(tel):
     tel = str(tel).strip()
     if tel.startswith("0"):
@@ -49,14 +48,17 @@ if menu == "Yeni Şikayet Oluştur":
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
         
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        # --- ÖZEL E-POSTA KONTROLÜ (Gmail, Hotmail, Outlook vb. Zorunlu) ---
+        # Sadece bilinen büyük servisleri kabul eder
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net)$'
         is_email_valid = False
+        
         if eposta != "": 
-            if re.match(email_pattern, eposta):
+            if re.match(email_pattern, eposta, re.IGNORECASE):
                 st.success("E-posta formatı geçerli. ✅")
                 is_email_valid = True
             else:
-                st.warning("⚠️ Lütfen geçerli bir e-posta adresi giriniz!")
+                st.warning("⚠️ Lütfen geçerli bir e-posta adresi giriniz (gmail, hotmail vb.)")
                 is_email_valid = False
 
     with c2: 
@@ -72,11 +74,9 @@ if menu == "Yeni Şikayet Oluştur":
         if not (ad and soyad and eposta and telefon_input):
             st.error("Lütfen tüm alanları doldurunuz.")
         elif not is_email_valid:
-            st.error("Hatalı e-posta adresi ile kayıt yapılamaz!")
+            st.error("Hatalı veya desteklenmeyen e-posta adresi!")
         else:
-            # Telefonu temizle (0 olsa da olmasa da başındaki 0 silinerek kaydedilir)
             temiz_tel = tel_temizle(telefon_input)
-            
             df_mevcut = veri_yukle()
             yeni_sira_no = 1
             if not df_mevcut.empty and "Müdürlük" in df_mevcut.columns and "Sıra_No" in df_mevcut.columns:
@@ -110,14 +110,11 @@ elif menu == "Şikayetlerimi Görüntüle":
     st.header("🔍 Şikayet Sorgulama")
     arama = st.text_input("E-posta veya Telefon numaranızı giriniz")
     if arama:
-        temiz_arama = tel_temizle(arama) # Arama yapılırken de temizlenir
+        temiz_arama = tel_temizle(arama)
         df = veri_yukle()
         if not df.empty:
-            # Telefon sütununu string yap ve temizle
             df['Telefon_Temiz'] = df['Telefon'].apply(tel_temizle)
-            
             sonuclar = df[(df["E-posta"] == arama) | (df["Telefon_Temiz"] == temiz_arama)]
-            
             if not sonuclar.empty:
                 st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
             else:
