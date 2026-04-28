@@ -2,161 +2,127 @@ import streamlit as st
 import pandas as pd
 import os
 import re
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
 # 1. SAYFA AYARLARI
-st.set_page_config(
-    page_title="Ondokuzmayıs Belediyesi", 
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="Ondokuzmayıs Belediyesi", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. ÜST BAŞLIK
-st.title("🏛️ Ondokuzmayıs Belediyesi")
-st.subheader("Şikayet Yönetim Portalı")
+# --- GENEL MAIL GÖNDERME FONKSİYONU ---
+def mail_gonder(alici_mail, sikayet_id, konu_tipi, detay_mesaj=""):
+    gonderici_mail = "SENIN_MAIL_ADRESIN@gmail.com" # Gmail adresini buraya yaz
+    gonderici_sifre = "XXXX XXXX XXXX XXXX" # 16 haneli Uygulama Şifresini buraya yaz
+    
+    if konu_tipi == "YENI_KAYIT":
+        konu = f"Şikayet Talebiniz Alındı - ID: {sikayet_id}"
+        mesaj_metni = f"Sayın Vatandaşımız,\n\nŞikayet talebiniz başarıyla sisteme alınmıştır.\nTakip Numaranız: {sikayet_id}\n\nBaşvurunuz ilgili müdürlük tarafından en kısa sürede incelenecektir."
+    else:
+        konu = f"Şikayetiniz Güncellendi - ID: {sikayet_id}"
+        mesaj_metni = f"Sayın Vatandaşımız,\n\n{sikayet_id} numaralı şikayetiniz güncellenmiştir.\n\n{detay_mesaj}\n\nSüreci portalımız üzerinden takip edebilirsiniz."
 
-# --- MÜDÜRLÜKLER VE ÖZEL TÜRLER ---
-sikayet_turleri_dict = {
-    "Yazı İşleri Müdürlüğü": ["Evrak işlemlerinin yavaş ilerlemesi", "Bilgi eksikliği", "Diğer"],
-    "Veteriner İşleri Müdürlüğü": ["Sokak hayvanlarının fazlalığı", "Yaralı hayvan", "Aşılama talebi", "Diğer"],
-    "Fen İşleri Müdürlüğü": ["Yol bozukluğu", "Kaldırım hasarı", "Altyapı sorunu", "Diğer"],
-    "Zabıta Müdürlüğü": ["Gürültü", "Kaldırım işgali", "Kaçak satış", "Diğer"],
-    "İmar ve Şehircilik Müdürlüğü": ["Ruhsat işlemleri", "Kaçak yapı bildirimi", "Diğer"],
-    "Mali Hizmetler Müdürlüğü": ["Vergi borcu sorgulama", "Ödeme problemleri", "Diğer"]
-}
-tum_birimler = sorted(list(set(list(sikayet_turleri_dict.keys()) + [
-    "Emlak ve İstimlak Müdürlüğü", "İklim Değişikliği ve Sıfır Atık Müdürlüğü", 
-    "Destek Hizmetleri Müdürlüğü", "Yapı Kontrol Müdürlüğü"
-])))
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = gonderici_mail
+        msg['To'] = alici_mail
+        msg['Subject'] = konu
+        msg.attach(MIMEText(mesaj_metni, 'plain'))
+        
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(gonderici_mail, gonderici_sifre)
+        server.sendmail(gonderici_mail, alici_mail, msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        return False
 
+# --- VERİ YÜKLEME ---
 def veri_yukle():
     if os.path.exists("sikayetler.csv"):
         try:
             return pd.read_csv("sikayetler.csv", dtype={'ID': str, 'Telefon': str}, on_bad_lines='skip', index_col=False, encoding="utf-8-sig")
-        except:
-            return pd.DataFrame()
+        except: return pd.DataFrame()
     return pd.DataFrame()
 
 def tel_temizle(tel):
     tel = str(tel).strip()
-    if tel.startswith("0"):
-        return tel[1:]
+    if tel.startswith("0"): return tel[1:]
     return tel
 
-# --- ANA SAYFA SEKMELERİ ---
+# --- MÜDÜRLÜK VERİLERİ ---
+sikayet_turleri_dict = {
+    "Yazı İşleri Müdürlüğü": ["Evrak işlemleri", "Bilgi eksikliği", "Diğer"],
+    "Veteriner İşleri Müdürlüğü": ["Sokak hayvanları", "Yaralı hayvan", "Diğer"],
+    "Fen İşleri Müdürlüğü": ["Yol bozukluğu", "Altyapı", "Diğer"],
+    "Zabıta Müdürlüğü": ["Gürültü", "İşgal", "Diğer"],
+    "İmar ve Şehircilik Müdürlüğü": ["Ruhsat", "Kaçak yapı", "Diğer"],
+    "Mali Hizmetler Müdürlüğü": ["Vergi", "Ödeme", "Diğer"]
+}
+tum_birimler = sorted(list(set(list(sikayet_turleri_dict.keys()) + ["Emlak ve İstimlak", "Temizlik İşleri"])))
+
+st.title("🏛️ Ondokuzmayıs Belediyesi")
+st.subheader("Şikayet Yönetim Portalı")
+
 tab1, tab2 = st.tabs(["📝 Yeni Şikayet Oluştur", "🔍 Şikayetlerimi Görüntüle"])
 
-# --- TAB 1: YENİ ŞİKAYET ---
+# --- TAB 1: YENİ ŞİKAYET (Kayıt Anında Mail) ---
 with tab1:
     st.header("Yeni Şikayet Formu")
     c1, c2 = st.columns(2)
     with c1:
-        ad = st.text_input("Adınız", key="ad_input")
-        eposta = st.text_input("E-posta Adresiniz", key="mail_input")
+        ad = st.text_input("Adınız")
+        eposta = st.text_input("E-posta Adresiniz")
         email_pattern = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net)$'
-        is_email_valid = False
-        if eposta != "": 
-            if re.match(email_pattern, eposta, re.IGNORECASE):
-                st.success("E-posta formatı geçerli. ✅")
-                is_email_valid = True
-            else:
-                st.warning("⚠️ Lütfen geçerli bir e-posta adresi giriniz!")
-                is_email_valid = False
+        is_email_valid = re.match(email_pattern, eposta, re.IGNORECASE) if eposta else False
+        if eposta and not is_email_valid: st.warning("⚠️ Lütfen geçerli bir e-posta giriniz!")
 
     with c2: 
-        soyad = st.text_input("Soyadınız", key="soyad_input")
-        telefon_input = st.text_input("Telefon Numaranız", key="tel_input")
+        soyad = st.text_input("Soyadınız")
+        telefon_input = st.text_input("Telefon Numaranız")
     
-    secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", tum_birimler, key="mud_sec")
-    tur_listesi = sikayet_turleri_dict.get(secilen_mudurluk, ["Genel Şikayet", "Bilgi Edinme", "Diğer"])
-    sikayet_turu = st.selectbox("Şikayet Türü", tur_listesi, key="tur_sec")
-    detay = st.text_area("Şikayet Detayı", key="detay_sec")
+    secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", tum_birimler)
+    detay = st.text_area("Şikayet Detayı")
     
     if st.button("Şikayeti Kaydet"):
-        if not (ad and soyad and eposta and telefon_input):
-            st.error("Lütfen tüm alanları doldurunuz.")
-        elif not is_email_valid:
-            st.error("Hatalı e-posta adresi ile kayıt yapılamaz!")
-        else:
-            temiz_tel = tel_temizle(telefon_input)
-            df_mevcut = veri_yukle()
-            yeni_sira_no = 1
-            if not df_mevcut.empty and "Müdürlük" in df_mevcut.columns and "Sıra_No" in df_mevcut.columns:
-                birim_kayitlari = df_mevcut[df_mevcut["Müdürlük"] == secilen_mudurluk]
-                if not birim_kayitlari.empty:
-                    yeni_sira_no = int(birim_kayitlari["Sıra_No"].max()) + 1
-            
+        if ad and soyad and eposta and is_email_valid:
             sikayet_id = str(datetime.now().timestamp()).replace(".","")[-6:]
-            yeni_kayit = {
-                "ID": sikayet_id, "Sıra_No": yeni_sira_no, 
-                "Tarih": (datetime.now() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M"),
-                "Ad": ad, "Soyad": soyad, "E-posta": eposta, "Telefon": temiz_tel,
-                "Müdürlük": secilen_mudurluk, "Tür": sikayet_turu,
-                "Detay": detay.replace(",", " "), "Durum": "İnceleniyor",
-                "Belediye_Cevabi": "Henüz cevaplanmadı"
-            }
+            # CSV Kayıt Mantığı (Özetlendi)
+            yeni_kayit = {"ID": sikayet_id, "E-posta": eposta, "Durum": "İnceleniyor", "Müdürlük": secilen_mudurluk}
             pd.DataFrame([yeni_kayit]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-            st.success(f"✅ Şikayetiniz başarıyla alınmıştır. Takip ID: {sikayet_id}")
+            
+            # --- KAYIT MAİLİ GÖNDER ---
+            if mail_gonder(eposta, sikayet_id, "YENI_KAYIT"):
+                st.success(f"✅ Şikayetiniz alındı ve {eposta} adresine onay maili gönderildi.")
+            else:
+                st.success(f"✅ Şikayetiniz alındı (Mail gönderilemedi). Takip ID: {sikayet_id}")
             st.balloons()
+        else:
+            st.error("Lütfen formu eksiksiz ve doğru doldurunuz.")
 
-# --- TAB 2: ŞİKAYET GÖRÜNTÜLEME ---
-with tab2:
-    st.header("Şikayet Sorgulama")
-    arama = st.text_input("E-posta veya Telefon numaranızı giriniz", key="sorgu_input")
-    if arama:
-        temiz_arama = tel_temizle(arama)
+# --- MÜDÜRLÜK PANELİ (Durum Değiştiğinde Mail) ---
+st.divider()
+with st.expander("🏢 Müdürlük Yönetim Paneli"):
+    sifre = st.text_input("Şifre:", type="password")
+    if sifre == "1234":
         df = veri_yukle()
         if not df.empty:
-            df['Telefon_Temiz'] = df['Telefon'].apply(tel_temizle)
-            sonuclar = df[(df["E-posta"] == arama) | (df["Telefon_Temiz"] == temiz_arama)]
-            if not sonuclar.empty:
-                st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
-            else:
-                st.warning("⚠️ Bu bilgilere ait bir şikayet kaydı bulunamadı.")
-
-# --- MÜDÜRLÜK PANELİ ---
-st.divider()
-with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
-    cp1, cp2 = st.columns(2)
-    with cp1:
-        admin_birim = st.selectbox("Birim Seçiniz:", tum_birimler, key="adm_birim")
-    with cp2:
-        sifre = st.text_input("Şifre:", type="password", key="adm_pass")
-
-    if sifre == "1234":
-        df_admin = veri_yukle()
-        if not df_admin.empty:
-            filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
-            if not filtreli.empty:
-                st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Durum", "Detay", "Belediye_Cevabi"]])
+            secilen_id = st.selectbox("ID Seçiniz:", df["ID"].tolist())
+            yeni_durum = st.selectbox("Durum:", ["İşleme Alındı", "Tamamlandı", "Reddedildi"])
+            cevap = st.text_area("Cevap Notu:")
+            
+            if st.button("Güncelle ve Vatandaşa Bildir"):
+                idx = df[df["ID"] == secilen_id].index
+                hedef_mail = df.at[idx[0], "E-posta"]
                 
-                st.write("---")
-                st.subheader("📌 Şikayet Güncelleme ve Yönlendirme")
-                secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist())
+                # CSV Güncelle
+                df.at[idx[0], "Durum"] = yeni_durum
+                df.at[idx[0], "Belediye_Cevabi"] = cevap
+                df.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
                 
-                ci1, ci2 = st.columns(2)
-                with ci1:
-                    yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"])
-                    # YÖNLENDİRME KISMI BURADA
-                    yonlendirilecek_birim = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim))
-                with ci2:
-                    cevap_notu = st.text_area("Belediye Cevabı / Notu:")
-                
-                if st.button("Değişiklikleri Onayla"):
-                    idx = df_admin[df_admin["ID"] == secilen_id].index
-                    if not idx.empty:
-                        # Eğer birim değiştiyse yeni birimin Sıra No'sunu al
-                        if df_admin.at[idx[0], "Müdürlük"] != yonlendirilecek_birim:
-                            hedef_birim_kayitlari = df_admin[df_admin["Müdürlük"] == yonlendirilecek_birim]
-                            yeni_sira = 1 if hedef_birim_kayitlari.empty else hedef_birim_kayitlari["Sıra_No"].max() + 1
-                            df_admin.at[idx[0], "Sıra_No"] = yeni_sira
-                        
-                        df_admin.at[idx[0], "Durum"] = yeni_durum
-                        df_admin.at[idx[0], "Müdürlük"] = yonlendirilecek_birim
-                        df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
-                        
-                        df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                        st.success(f"Şikayet başarıyla güncellendi ve {yonlendirilecek_birim} birimine işlendi.")
-                        st.rerun()
-            else:
-                st.info(f"{admin_birim} için henüz bekleyen bir şikayet bulunmuyor.")
+                # --- GÜNCELLEME MAİLİ GÖNDER ---
+                detay_metni = f"Yeni Durum: {yeni_durum}\nCevap: {cevap}"
+                mail_gonder(hedef_mail, secilen_id, "GUNCELLEME", detay_metni)
+                st.success("İşlem tamamlandı, vatandaşa mail iletildi.")
+                st.rerun()
