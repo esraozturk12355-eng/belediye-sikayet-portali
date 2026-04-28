@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-import re # E-posta kontrolü için gerekli kütüphane
+import re
 from datetime import datetime, timedelta
 
 # 1. SAYFA AYARLARI
@@ -41,6 +41,19 @@ if menu == "Yeni Şikayet Oluştur":
     with c1:
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
+        
+        # --- ANLIK E-POSTA KONTROLÜ ---
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        is_email_valid = False
+        
+        if eposta != "": # Boş değilse kontrol et
+            if re.match(email_pattern, eposta):
+                st.success("E-posta formatı geçerli. ✅")
+                is_email_valid = True
+            else:
+                st.warning("⚠️ Lütfen geçerli bir e-posta adresi giriniz! (Örn: isim@gmail.com)")
+                is_email_valid = False
+
     with c2: 
         soyad = st.text_input("Soyadınız")
         telefon = st.text_input("Telefon Numaranız")
@@ -51,17 +64,12 @@ if menu == "Yeni Şikayet Oluştur":
     detay = st.text_area("Şikayet Detayı")
     
     if st.button("Şikayeti Kaydet"):
-        # E-posta formatı kontrolü (Regex)
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        
         if not (ad and soyad and eposta):
             st.error("Lütfen tüm alanları doldurunuz.")
-        elif not re.match(email_pattern, eposta):
-            st.error("⚠️ Doğru mail adresi giriniz! (Örn: isim@gmail.com)")
+        elif not is_email_valid:
+            st.error("Hatalı e-posta adresi ile kayıt yapılamaz!")
         else:
             df_mevcut = veri_yukle()
-            
-            # ARKA PLANDA MÜDÜRLÜĞE ÖZEL SIRA NO HESAPLAMA
             yeni_sira_no = 1
             if not df_mevcut.empty and "Müdürlük" in df_mevcut.columns and "Sıra_No" in df_mevcut.columns:
                 birim_kayitlari = df_mevcut[df_mevcut["Müdürlük"] == secilen_mudurluk]
