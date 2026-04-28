@@ -28,14 +28,7 @@ with c2:
     st.title("Ondokuzmayıs Belediyesi")
     st.subheader("Şikayet Yönetim Portalı")
 
-# --- WHATSAPP LINK OLUSTURMA FONKSIYONU ---
-def wp_link_olustur(telefon, mesaj):
-    temiz_tel = str(telefon).strip()
-    if temiz_tel.startswith("0"):
-        temiz_tel = temiz_tel[1:]
-    encoded_mesaj = urllib.parse.quote(mesaj)
-    link = f"https://wa.me/90{temiz_tel}?text={encoded_mesaj}"
-    return link
+
 
 # --- VERİ YÜKLEME ---
 def veri_yukle():
