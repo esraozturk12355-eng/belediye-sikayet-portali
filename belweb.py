@@ -49,7 +49,6 @@ if menu == "Yeni Şikayet Oluştur":
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
         
-        # --- ANLIK E-POSTA KONTROLÜ (Sadece Uyarı Metni) ---
         email_pattern = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net)$'
         is_email_valid = False
         
@@ -109,16 +108,26 @@ if menu == "Yeni Şikayet Oluştur":
 elif menu == "Şikayetlerimi Görüntüle":
     st.header("🔍 Şikayet Sorgulama")
     arama = st.text_input("E-posta veya Telefon numaranızı giriniz")
+    
     if arama:
         temiz_arama = tel_temizle(arama)
         df = veri_yukle()
+        
         if not df.empty:
+            # Telefonları karşılaştırmak için temizle
             df['Telefon_Temiz'] = df['Telefon'].apply(tel_temizle)
+            
+            # Sorgula
             sonuclar = df[(df["E-posta"] == arama) | (df["Telefon_Temiz"] == temiz_arama)]
+            
             if not sonuclar.empty:
+                st.info(f"Toplam {len(sonuclar)} adet kaydınız bulundu:")
                 st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
             else:
-                st.warning("Kayıt bulunamadı.")
+                # EĞER KAYIT YOKSA BURASI ÇALIŞIR
+                st.warning("⚠️ Bu bilgilere ait bir şikayet kaydı bulunamadı. Lütfen bilgilerinizi kontrol ediniz.")
+        else:
+            st.warning("Sistemde henüz hiç kayıtlı şikayet bulunmuyor.")
 
 # --- MÜDÜRLÜK PANELİ ---
 st.divider()
