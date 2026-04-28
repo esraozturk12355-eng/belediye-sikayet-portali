@@ -4,8 +4,12 @@ import os
 import re
 from datetime import datetime, timedelta
 
-# 1. SAYFA AYARLARI
-st.set_page_config(page_title="Ondokuzmayıs Belediyesi", layout="wide")
+# 1. SAYFA AYARLARI (initial_sidebar_state="collapsed" menüyü otomatik kapatır)
+st.set_page_config(
+    page_title="Ondokuzmayıs Belediyesi", 
+    layout="wide",
+    initial_sidebar_state="collapsed" 
+)
 
 st.title("🏛️ Ondokuzmayıs Belediyesi")
 st.subheader("Şikayet Yönetim Portalı")
@@ -32,13 +36,13 @@ def veri_yukle():
             return pd.DataFrame()
     return pd.DataFrame()
 
-# TELEFON TEMİZLEME FONKSİYONU
 def tel_temizle(tel):
     tel = str(tel).strip()
     if tel.startswith("0"):
         return tel[1:]
     return tel
 
+# 4. YAN MENÜ
 menu = st.sidebar.radio("İşlem Seçiniz", ["Yeni Şikayet Oluştur", "Şikayetlerimi Görüntüle"])
 
 # --- YENİ ŞİKAYET OLUŞTURMA ---
@@ -48,10 +52,8 @@ if menu == "Yeni Şikayet Oluştur":
     with c1:
         ad = st.text_input("Adınız")
         eposta = st.text_input("E-posta Adresiniz")
-        
         email_pattern = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net)$'
         is_email_valid = False
-        
         if eposta != "": 
             if re.match(email_pattern, eposta, re.IGNORECASE):
                 st.success("E-posta formatı geçerli. ✅")
@@ -108,26 +110,19 @@ if menu == "Yeni Şikayet Oluştur":
 elif menu == "Şikayetlerimi Görüntüle":
     st.header("🔍 Şikayet Sorgulama")
     arama = st.text_input("E-posta veya Telefon numaranızı giriniz")
-    
     if arama:
         temiz_arama = tel_temizle(arama)
         df = veri_yukle()
-        
         if not df.empty:
-            # Telefonları karşılaştırmak için temizle
             df['Telefon_Temiz'] = df['Telefon'].apply(tel_temizle)
-            
-            # Sorgula
             sonuclar = df[(df["E-posta"] == arama) | (df["Telefon_Temiz"] == temiz_arama)]
-            
             if not sonuclar.empty:
                 st.info(f"Toplam {len(sonuclar)} adet kaydınız bulundu:")
                 st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
             else:
-                # EĞER KAYIT YOKSA BURASI ÇALIŞIR
-                st.warning("⚠️ Bu bilgilere ait bir şikayet kaydı bulunamadı. Lütfen bilgilerinizi kontrol ediniz.")
+                st.warning("⚠️ Bu bilgilere ait bir şikayet kaydı bulunamadı.")
         else:
-            st.warning("Sistemde henüz hiç kayıtlı şikayet bulunmuyor.")
+            st.warning("Sistemde henüz kayıtlı şikayet yok.")
 
 # --- MÜDÜRLÜK PANELİ ---
 st.divider()
@@ -146,24 +141,20 @@ if sifre == "1234":
             if not filtreli.empty:
                 st.write(f"### {admin_birim} Şikayetleri")
                 st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
-                
                 st.write("---")
                 secilen_id = st.selectbox("İşlem Yapılacak ID:", filtreli["ID"].tolist())
-                
                 ci1, ci2 = st.columns(2)
                 with ci1:
                     yeni_durum = st.selectbox("Durum:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"])
                     yönlendir = st.selectbox("Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim))
                 with ci2:
                     cevap = st.text_area("Cevap Notu:")
-                
                 if st.button("Onayla"):
                     idx = df_admin[df_admin["ID"] == secilen_id].index
                     if not idx.empty:
                         if df_admin.at[idx[0], "Müdürlük"] != yönlendir:
                             hedef = df_admin[df_admin["Müdürlük"] == yönlendir]
                             df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
-                        
                         df_admin.at[idx[0], "Durum"] = yeni_durum
                         df_admin.at[idx[0], "Müdürlük"] = yönlendir
                         df_admin.at[idx[0], "Belediye_Cevabi"] = cevap
