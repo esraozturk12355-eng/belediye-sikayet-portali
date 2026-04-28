@@ -8,10 +8,10 @@ from datetime import datetime, timedelta
 st.set_page_config(
     page_title="Ondokuzmayıs Belediyesi", 
     layout="wide",
-    initial_sidebar_state="collapsed" # Varsayılan olarak kapalı tutar
+    initial_sidebar_state="collapsed"
 )
 
-# 2. ÜST BAŞLIK VE LOGO
+# 2. ÜST BAŞLIK
 st.title("🏛️ Ondokuzmayıs Belediyesi")
 st.subheader("Şikayet Yönetim Portalı")
 
@@ -43,8 +43,7 @@ def tel_temizle(tel):
         return tel[1:]
     return tel
 
-# --- SIDEBAR'I DEVRE DIŞI BIRAKIP ÜST MENÜ YAPTIK ---
-# Bu sayede o oklarla uğraşmana gerek kalmaz.
+# --- ANA SAYFA SEKMELERİ ---
 tab1, tab2 = st.tabs(["📝 Yeni Şikayet Oluştur", "🔍 Şikayetlerimi Görüntüle"])
 
 # --- TAB 1: YENİ ŞİKAYET ---
@@ -97,7 +96,7 @@ with tab1:
                 "Belediye_Cevabi": "Henüz cevaplanmadı"
             }
             pd.DataFrame([yeni_kayit]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-            st.success(f"✅ Şikayetiniz başarıyla alınmıştır. ID: {sikayet_id}")
+            st.success(f"✅ Şikayetiniz başarıyla alınmıştır. Takip ID: {sikayet_id}")
             st.balloons()
 
 # --- TAB 2: ŞİKAYET GÖRÜNTÜLEME ---
@@ -113,9 +112,9 @@ with tab2:
             if not sonuclar.empty:
                 st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
             else:
-                st.warning("⚠️ Kayıt bulunamadı.")
+                st.warning("⚠️ Bu bilgilere ait bir şikayet kaydı bulunamadı.")
 
-# --- MÜDÜRLÜK PANELİ (Sayfanın En Altında Gizli) ---
+# --- MÜDÜRLÜK PANELİ ---
 st.divider()
 with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
     cp1, cp2 = st.columns(2)
@@ -129,14 +128,35 @@ with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
         if not df_admin.empty:
             filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
             if not filtreli.empty:
-                st.dataframe(filtreli)
-                secilen_id = st.selectbox("İşlem Yapılacak ID:", filtreli["ID"].tolist())
-                yeni_durum = st.selectbox("Durum:", ["İnceleniyor", "Tamamlandı", "Reddedildi"])
-                cevap = st.text_area("Cevap Notu:")
-                if st.button("Güncelle"):
+                st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Durum", "Detay", "Belediye_Cevabi"]])
+                
+                st.write("---")
+                st.subheader("📌 Şikayet Güncelleme ve Yönlendirme")
+                secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist())
+                
+                ci1, ci2 = st.columns(2)
+                with ci1:
+                    yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"])
+                    # YÖNLENDİRME KISMI BURADA
+                    yonlendirilecek_birim = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim))
+                with ci2:
+                    cevap_notu = st.text_area("Belediye Cevabı / Notu:")
+                
+                if st.button("Değişiklikleri Onayla"):
                     idx = df_admin[df_admin["ID"] == secilen_id].index
-                    df_admin.at[idx[0], "Durum"] = yeni_durum
-                    df_admin.at[idx[0], "Belediye_Cevabi"] = cevap
-                    df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                    st.success("Güncellendi!")
-                    st.rerun()
+                    if not idx.empty:
+                        # Eğer birim değiştiyse yeni birimin Sıra No'sunu al
+                        if df_admin.at[idx[0], "Müdürlük"] != yonlendirilecek_birim:
+                            hedef_birim_kayitlari = df_admin[df_admin["Müdürlük"] == yonlendirilecek_birim]
+                            yeni_sira = 1 if hedef_birim_kayitlari.empty else hedef_birim_kayitlari["Sıra_No"].max() + 1
+                            df_admin.at[idx[0], "Sıra_No"] = yeni_sira
+                        
+                        df_admin.at[idx[0], "Durum"] = yeni_durum
+                        df_admin.at[idx[0], "Müdürlük"] = yonlendirilecek_birim
+                        df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
+                        
+                        df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
+                        st.success(f"Şikayet başarıyla güncellendi ve {yonlendirilecek_birim} birimine işlendi.")
+                        st.rerun()
+            else:
+                st.info(f"{admin_birim} için henüz bekleyen bir şikayet bulunmuyor.")
