@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import os
 import re
-import urllib.parse
 from datetime import datetime, timedelta
 
 # 1. SAYFA AYARLARI
@@ -16,9 +15,7 @@ st.set_page_config(
 # --- ÜST BAŞLIK VE LOGO ALANI ---
 c1, c2 = st.columns([1, 6]) 
 with c1:
-    # İsmi Türkçe karakter içermeyen 'logo.jfif' yaptık
     logo_dosyasi = "logo.jfif"
-    
     if os.path.exists(logo_dosyasi):
         st.image(logo_dosyasi, width=120)
     else:
@@ -28,9 +25,7 @@ with c2:
     st.title("Ondokuzmayıs Belediyesi")
     st.subheader("Şikayet Yönetim Portalı")
 
-
-
-# --- VERİ YÜKLEME ---
+# --- VERİ YÜKLEME FONKSİYONU ---
 def veri_yukle():
     if os.path.exists("sikayetler.csv"):
         try:
@@ -38,6 +33,7 @@ def veri_yukle():
         except: return pd.DataFrame()
     return pd.DataFrame()
 
+# TELEFON TEMİZLEME (0 olsa da olmasa da eşleştirir)
 def tel_temizle(tel):
     tel = str(tel).strip()
     if tel.startswith("0"): return tel[1:]
@@ -67,6 +63,7 @@ with tab1:
     with c1:
         ad = st.text_input("Adınız", key="ad_yeni")
         eposta = st.text_input("E-posta Adresiniz", key="mail_yeni")
+        # Gmail, Hotmail vb. kısıtlaması olan e-posta deseni
         email_pattern = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net)$'
         is_email_valid = False
         if eposta != "": 
@@ -95,6 +92,7 @@ with tab1:
                 if not birim_kayitlari.empty:
                     yeni_sira_no = int(birim_kayitlari["Sıra_No"].max()) + 1
             
+            # Benzersiz ID oluşturma
             sikayet_id = str(datetime.now().timestamp()).replace(".","")[-6:]
             yeni_kayit = {
                 "ID": sikayet_id, "Sıra_No": yeni_sira_no, 
@@ -107,9 +105,6 @@ with tab1:
             pd.DataFrame([yeni_kayit]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
             
             st.success(f"✅ Şikayetiniz başarıyla alınmıştır. Takip ID: {sikayet_id}")
-            wp_mesaj = f"Sayın {ad} {soyad}, {sikayet_id} numaralı şikayet talebiniz Ondokuzmayıs Belediyesi tarafından alınmıştır. Teşekkür ederiz."
-            link = wp_link_olustur(temiz_tel, wp_mesaj)
-            st.markdown(f'''<a href="{link}" target="_blank"><button style="background-color: #25D366; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">📱 Vatandaşa WhatsApp'tan Bildir</button></a>''', unsafe_allow_html=True)
             st.balloons()
         else:
             st.error("Lütfen formu eksiksiz ve doğru formatta doldurunuz.")
@@ -122,13 +117,17 @@ with tab2:
         temiz_arama = tel_temizle(arama)
         df = veri_yukle()
         if not df.empty:
+            # Telefonları karşılaştırmak için sanal bir temiz sütun oluşturuyoruz
             df['Telefon_Temiz'] = df['Telefon'].apply(tel_temizle)
             sonuclar = df[(df["E-posta"] == arama) | (df["Telefon_Temiz"] == temiz_arama)]
+            
             if not sonuclar.empty:
                 st.info(f"Toplam {len(sonuclar)} adet kaydınız bulundu:")
                 st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
             else:
                 st.warning("⚠️ Bu bilgilere ait bir şikayet kaydı bulunamadı.")
+        else:
+            st.warning("⚠️ Sistemde henüz kayıtlı şikayet bulunmuyor.")
 
 # --- MÜDÜRLÜK PANELİ ---
 st.divider()
@@ -159,9 +158,7 @@ with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
                     if st.button("Değişiklikleri Onayla"):
                         idx = df_admin[df_admin["ID"] == secilen_id].index
                         if not idx.empty:
-                            alici_ad = df_admin.at[idx[0], "Ad"]
-                            alici_tel = df_admin.at[idx[0], "Telefon"]
-                            
+                            # Eğer müdürlük yönlendirmesi yapıldıysa yeni birimin en sonuna ekle
                             if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
                                 hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
                                 df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
@@ -171,8 +168,7 @@ with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
                             df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
                             df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
                             
-                            st.success("Kayıt güncellendi!")
-                            guncel_mesaj = f"Sayın {alici_ad}, {secilen_id} numaralı şikayetiniz güncellenmiştir.\nYeni Durum: {yeni_durum}\nCevap: {cevap_notu}"
-                            link = wp_link_olustur(alici_tel, guncel_mesaj)
-                            st.markdown(f'''<a href="{link}" target="_blank"><button style="background-color: #25D366; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">📱 Güncellemeyi WhatsApp'tan Gönder</button></a>''', unsafe_allow_html=True)
-                            # st.rerun() buton basıldığında WhatsApp linki görünsün diye bu satırı kapattık veya bir uyarı ekledik.
+                            st.success("Kayıt başarıyla güncellendi!")
+                            st.rerun()
+                else:
+                    st.info(f"{admin_birim} için henüz kayıtlı bir şikayet bulunmuyor.")
