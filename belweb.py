@@ -6,33 +6,48 @@ from datetime import datetime, timedelta
 
 # 1. SAYFA AYARLARI
 st.set_page_config(
-    page_title="Ondokuzmayıs Belediyesi Akıllı Portal", 
+    page_title="Ondokuzmayıs Belediyesi AI Portal", 
     layout="wide",
     initial_sidebar_state="collapsed",
     page_icon="🏛️"
 )
 
-# --- EVRAK VE İŞLEM VERİTABANI (Asistanın Bilgi Kaynağı) ---
-islem_rehberi = {
+# --- EVRAK VERİTABANI (Tüm Müdürlükler İçin) ---
+evrak_katalogu = {
     "İmar ve Şehircilik Müdürlüğü": {
-        "İnşaat Ruhsatı Almak": ["Tapu Fotokopisi", "Mimari Proje", "İmar Durum Belgesi", "Aplikasyon Krokisi"],
-        "Yapı Kullanma İzni (İskan)": ["Sığınak Raporu", "Enerji Kimlik Belgesi", "SSK İlişiksiz Belgesi"]
+        "İnşaat Ruhsatı": ["Tapu Fotokopisi", "Mimari Proje", "İmar Durum Belgesi", "Aplikasyon Krokisi"],
+        "İskan Alımı": ["Sığınak Raporu", "Enerji Kimlik Belgesi", "SSK İlişiksiz Belgesi"],
+        "Yıkım Ruhsatı": ["Emlak Vergi Borcu Yoktur Yazısı", "İlgili Kurumlardan İlişiksiz Belgesi"]
     },
     "Yazı İşleri Müdürlüğü": {
-        "Nikah Başvurusu": ["Nüfus Kayıt Örneği", "Sağlık Raporu", "4 Adet Vesikalık Fotoğraf", "İkametgah"],
-        "Dilekçe Sorgulama": ["TC Kimlik Kartı", "Dilekçe Kayıt Numarası"]
+        "Nikah Başvurusu": ["Nüfus Kayıt Örneği", "Sağlık Raporu", "4 Adet Fotoğraf", "İkametgah"],
+        "Dilekçe Verme": ["TC Kimlik Kartı", "Islak İmzalı Dilekçe"],
+        "Bilgi Edinme": ["Başvuru Formu", "Kimlik Fotokopisi"]
     },
     "Mali Hizmetler Müdürlüğü": {
         "Emlak Vergisi Muafiyeti": ["Emeklilik Belgesi", "Tek Mesken Beyan Formu", "Tapu Örneği"],
-        "Beyanname Verme": ["Tapu Fotokopisi", "Kimlik Fotokopisi"]
+        "İşyeri Açma Vergisi": ["Vergi Levhası", "Kira Kontratı", "Esnaf Sicil Gazetesi"],
+        "Rayiç Değer Belgesi": ["Tapu Örneği", "Kimlik Aslı"]
+    },
+    "Zabıta Müdürlüğü": {
+        "İşyeri Açma ve Çalışma Ruhsatı": ["Kira Kontratı", "Tapu Fotokopisi", "İtfaiye Uygunluk Raporu"],
+        "Hafta Tatili Ruhsatı": ["Ruhsat Fotokopisi", "Harç Makbuzu"]
+    },
+    "Veteriner İşleri Müdürlüğü": {
+        "Evcil Hayvan Kaydı": ["Hayvanın Pasaportu", "Kuduz Aşısı Kartı", "Sahibinin Kimliği"],
+        "Sokak Hayvanı Şikayeti": ["Konum Bilgisi", "Olay Fotoğrafı (Varsa)"]
+    },
+    "Fen İşleri Müdürlüğü": {
+        "Asfalt Katılım Payı Sorgulama": ["Ada/Parsel Bilgisi", "Kimlik Fotokopisi"],
+        "Yol Kazı İzni": ["Proje Örneği", "Kazı Ruhsat Talep Formu"]
     }
 }
 
-# --- SESSION STATE AYARLARI ---
-if "aktif_sekme_index" not in st.session_state:
-    st.session_state.aktif_sekme_index = 0
+# --- SESSION STATE (Süreç Yönetimi) ---
+if "sayfa" not in st.session_state:
+    st.session_state.sayfa = "asistan"
 
-# --- VERİ YÜKLEME ---
+# --- YARDIMCI FONKSİYONLAR ---
 def veri_yukle():
     if os.path.exists("sikayetler.csv"):
         try:
@@ -45,107 +60,115 @@ def tel_temizle(tel):
     if tel.startswith("0"): return tel[1:]
     return tel
 
-# --- ÜST BAŞLIK ---
+# --- LOGO VE BAŞLIK ---
 c1, c2 = st.columns([1, 6]) 
 with c1:
     if os.path.exists("logo.jfif"): st.image("logo.jfif", width=120)
     else: st.write("# 🏛️") 
 with c2:
     st.title("Ondokuzmayıs Belediyesi")
-    st.subheader("Akıllı Vatandaş Rehberi & Çözüm Merkezi")
+    st.subheader("Yapay Zeka Destekli Vatandaş Portalı")
 
 st.divider()
 
-# --- ANA SEKMELER (Otomatik Seçim Destekli) ---
-# st.radio'yu menü gibi kullanarak sekmeler arası geçişi sağlıyoruz
-secilen_islem = st.sidebar.radio("Menü", ["🤖 AI Belediye Asistanı", "📝 Yeni Şikayet Oluştur", "🔍 Şikayet Takibi"], index=st.session_state.aktif_sekme_index)
-
-# --- MENÜ YÖNLENDİRME MANTIĞI ---
-if secilen_islem == "🤖 AI Belediye Asistanı":
-    st.header("🤖 Akıllı Belediye Asistanı")
-    st.info("Size nasıl yardımcı olabilirim? Aşağıdaki seçeneklerden birini seçebilir veya bana yazabilirsiniz.")
+# --- ANA MANTIĞI YÖNETEN ASİSTAN ---
+if st.session_state.sayfa == "asistan":
+    st.info("### 🤖 Hoş geldiniz! Ben Belediye Asistanınız.\nSize nasıl yardımcı olabilirim? Lütfen bir seçenek belirleyin veya bana yazın.")
     
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("📝 Şikayet Etmek İstiyorum"):
-            st.session_state.aktif_sekme_index = 1
+    # Hızlı Seçenek Butonları
+    btn_col1, btn_col2, btn_col3 = st.columns(3)
+    with btn_col1:
+        if st.button("📝 Yeni Şikayet Oluştur"):
+            st.session_state.sayfa = "sikayet_olustur"
             st.rerun()
-            
-    with col2:
-        if st.button("🔍 Şikayetimi Sorgulayacağım"):
-            st.session_state.aktif_sekme_index = 2
+    with btn_col2:
+        if st.button("🔍 Şikayet Sorgula"):
+            st.session_state.sayfa = "sorgulama"
             st.rerun()
-
-    with col3:
-        if st.button("📄 Evrak Bilgisi Alacağım"):
-            st.session_state.evrak_modu = True
+    with btn_col3:
+        if st.button("📄 Gerekli Evrakları Görüntüle"):
+            st.session_state.sayfa = "evrak_kontrol"
+            st.rerun()
 
     st.write("---")
     
-    # EVRAK BİLGİSİ SORGULAMA MODU
-    if "evrak_modu" in st.session_state and st.session_state.evrak_modu:
-        st.subheader("📑 İşlem & Evrak Rehberi")
-        secilen_mud = st.selectbox("Lütfen İlgili Müdürlüğü Seçiniz:", list(islem_rehberi.keys()))
-        secilen_islem_turu = st.selectbox("Yapmak İstediğiniz İşlemi Seçiniz:", list(islem_rehberi[secilen_mud].keys()))
-        
-        if st.button("Gereken Evrakları Göster"):
-            evraklar = islem_rehberi[secilen_mud][secilen_islem_turu]
-            st.warning(f"🔔 **{secilen_islem_turu}** işlemi için hazırlamanız gereken evraklar şunlardır:")
-            for e in evraklar:
-                st.write(f"- {e}")
-            if st.button("Rehberi Kapat"):
-                del st.session_state.evrak_modu
-                st.rerun()
-
-    # SOHBET KISMI
+    # Sohbet Kutusu (Kullanıcı Yazarsa)
     if "messages" not in st.session_state:
-        st.session_state.messages = [{"role": "assistant", "content": "Merhaba! Ben belediye asistanınız. Şikayet bildirimi yapabilir, evrak takibi yapabilir veya işlemler hakkında bilgi alabilirsiniz."}]
+        st.session_state.messages = []
 
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
-    if prompt := st.chat_input("Sorunuzu buraya yazın..."):
+    if prompt := st.chat_input("Mesajınızı buraya yazabilirsiniz..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"): st.markdown(prompt)
         
-        # Akıllı Yanıtlar
         p_low = prompt.lower()
         if "şikayet" in p_low or "sikayet" in p_low:
-            msg = "Şikayet oluşturma ekranına sol menüden ulaşabilir veya 'Şikayet Etmek İstiyorum' butonuna basabilirsiniz."
+            resp = "Şikayet kaydı oluşturmanız için sizi ilgili forma yönlendiriyorum."
+            st.session_state.sayfa = "sikayet_olustur"
+            st.rerun()
+        elif "sorgu" in p_low or "takip" in p_low:
+            resp = "Sorgulama ekranına yönlendiriliyorsunuz."
+            st.session_state.sayfa = "sorgulama"
+            st.rerun()
         elif "evrak" in p_low or "belge" in p_low:
-            msg = "Yukarıdaki 'Evrak Bilgisi Alacağım' butonuna tıklayarak müdürlüklere göre gereken belgeleri listeleyebilirsiniz."
+            resp = "Evrak kontrolü için sizi rehberimize yönlendiriyorum."
+            st.session_state.sayfa = "evrak_kontrol"
+            st.rerun()
         else:
-            msg = "Anlayamadım, lütfen yukarıdaki butonları kullanarak size daha hızlı yardımcı olmama izin verin."
-            
-        with st.chat_message("assistant"): st.markdown(msg)
-        st.session_state.messages.append({"role": "assistant", "content": msg})
+            resp = "Şu an için size şikayet oluşturma, sorgulama ve evrak bilgisi konularında yardımcı olabilirim. Lütfen bu işlemlerden birini belirtin."
+        
+        st.session_state.messages.append({"role": "assistant", "content": resp})
+        with st.chat_message("assistant"): st.markdown(resp)
 
-# --- TAB 1: ŞİKAYET OLUŞTURMA ---
-elif secilen_islem == "📝 Yeni Şikayet Oluştur":
-    st.header("📝 Yeni Şikayet Formu")
-    # ... (Buradaki form kodun önceki şikayet formunla aynı olacak)
-    c1, c2 = st.columns(2)
-    with c1:
-        ad = st.text_input("Adınız", key="ad_y")
-        eposta = st.text_input("E-posta", key="ep_y")
-    with c2:
-        soyad = st.text_input("Soyadınız", key="so_y")
-        tel = st.text_input("Telefon", key="te_y")
+# --- EVRAK KONTROL EKRANI ---
+elif st.session_state.sayfa == "evrak_kontrol":
+    st.header("📑 Müdürlük Bazlı Gerekli Evraklar")
+    if st.button("⬅️ Asistana Geri Dön"):
+        st.session_state.sayfa = "asistan"
+        st.rerun()
     
-    detay = st.text_area("Şikayetiniz")
-    if st.button("Kaydet"):
-        st.success("Kaydedildi!")
+    st.write("Bilgi almak istediğiniz müdürlüğü seçiniz:")
+    secilen_mud = st.selectbox("Müdürlük Seçimi", list(evrak_katalogu.keys()))
+    
+    if secilen_mud:
+        st.write(f"**{secilen_mud}** bünyesinde yapabileceğiniz işlemler:")
+        islem = st.selectbox("İşlem Seçimi", list(evrak_katalogu[secilen_mud].keys()))
+        
+        if islem:
+            st.warning(f"📌 **{islem}** için hazırlamanız gereken evrak listesi:")
+            for e in evrak_katalogu[secilen_mud][islem]:
+                st.write(f"- {e}")
 
-# --- TAB 2: SORGULAMA ---
-elif secilen_islem == "🔍 Şikayet Takibi":
+# --- ŞİKAYET OLUŞTURMA EKRANI ---
+elif st.session_state.sayfa == "sikayet_olustur":
+    st.header("📝 Yeni Şikayet Formu")
+    if st.button("⬅️ Asistana Geri Dön"):
+        st.session_state.sayfa = "asistan"
+        st.rerun()
+    
+    # Form içeriği (Kaan, senin form kodun buraya gelecek)
+    st.info("Lütfen aşağıdaki formu doldurunuz.")
+    # (Örnek alanlar)
+    ad = st.text_input("Adınız")
+    soyad = st.text_input("Soyadınız")
+    # ... formun devamı ...
+
+# --- SORGULAMA EKRANI ---
+elif st.session_state.sayfa == "sorgulama":
     st.header("🔍 Şikayet Takip Paneli")
-    # ... (Önceki sorgulama kodun)
-    sorgu = st.text_input("Takip numaranızı veya telefonunuzu girin")
-    if st.button("Sorgula"):
-        st.write("Sonuçlar yükleniyor...")
+    if st.button("⬅️ Asistana Geri Dön"):
+        st.session_state.sayfa = "asistan"
+        st.rerun()
+    
+    arama = st.text_input("E-posta veya Telefon numaranızı giriniz")
+    # ... sorgulama kodun ...
 
-# --- MÜDÜRLÜK PANELİ (Expander) ---
+# --- YÖNETİM PANELİ (Her zaman en altta gizli kalsın) ---
 st.write("---")
 with st.expander("🏢 Müdürlük Yönetim Paneli"):
-    pass # Önceki yönetim paneli kodun buraya gelecek
+    sifre = st.text_input("Giriş Şifresi", type="password")
+    if sifre == "1234":
+        st.success("Yönetim paneli aktif.")
+        # ... yönetim kodun ...
