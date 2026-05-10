@@ -73,16 +73,6 @@ BELEDİYE_İLETİŞİM = {
 if "sayfa" not in st.session_state: st.session_state.sayfa = "asistan"
 if "messages" not in st.session_state: st.session_state.messages = []
 
-# --- ÜST BAŞLIK VE LOGO ALANI ---
-c1, c2 = st.columns([1, 6]) 
-with c1:
-    logo_dosyasi = "logo.jfif"
-    if os.path.exists(logo_dosyasi): st.image(logo_dosyasi, width=120)
-    else: st.write("# 🏛️") 
-with c2:
-    st.title("Ondokuzmayıs Belediyesi")
-    st.subheader("Akıllı Vatandaş ve Yönetim Portalı")
-
 # --- FONKSİYONLAR ---
 def veri_yukle():
     if os.path.exists("sikayetler.csv"):
@@ -91,10 +81,15 @@ def veri_yukle():
     return pd.DataFrame()
 
 def mesaj_yukle():
+    cols = ["Tarih", "Gonderen", "Sifre", "Mudurluk", "Mesaj", "Dosya_Adi", "Cevap"]
     if os.path.exists("mesajlar.csv"):
-        try: return pd.read_csv("mesajlar.csv", on_bad_lines='skip', encoding="utf-8-sig")
-        except: return pd.DataFrame(columns=["Tarih", "Gonderen", "Sifre", "Mudurluk", "Mesaj", "Dosya_Adi", "Cevap"])
-    return pd.DataFrame(columns=["Tarih", "Gonderen", "Sifre", "Mudurluk", "Mesaj", "Dosya_Adi", "Cevap"])
+        try: 
+            df = pd.read_csv("mesajlar.csv", on_bad_lines='skip', encoding="utf-8-sig")
+            for col in cols:
+                if col not in df.columns: df[col] = "Yok"
+            return df
+        except: return pd.DataFrame(columns=cols)
+    return pd.DataFrame(columns=cols)
 
 def tel_temizle(tel):
     tel = str(tel).strip()
@@ -109,6 +104,16 @@ sikayet_turleri_dict = {
     "Mali Hizmetler Müdürlüğü": ["Vergi borcu", "Ödeme problemleri", "Diğer"]
 }
 tum_birimler = sorted(list(set(list(sikayet_turleri_dict.keys()) + list(EVRAK_REHBERI.keys()))))
+
+# --- ÜST BAŞLIK VE LOGO ---
+c1, c2 = st.columns([1, 6]) 
+with c1:
+    logo_dosyasi = "logo.jfif"
+    if os.path.exists(logo_dosyasi): st.image(logo_dosyasi, width=120)
+    else: st.write("# 🏛️") 
+with c2:
+    st.title("Ondokuzmayıs Belediyesi")
+    st.subheader("Akıllı Vatandaş ve Yönetim Portalı")
 
 st.divider()
 
@@ -125,19 +130,15 @@ if st.session_state.sayfa == "asistan":
     r2c1, r2c2 = st.columns(2)
     
     if r1c1.button("📝 Şikayet Oluştur"):
-        st.session_state.messages.append({"role": "assistant", "content": "Anlaşıldı, sizi hemen şikayet formuna yönlendiriyorum..."})
+        st.session_state.messages.append({"role": "assistant", "content": "Sizi hemen yeni şikayet formuna yönlendiriyorum..."})
         st.session_state.sayfa = "portal"; st.rerun()
-
     if r1c2.button("🔍 Şikayet Sorgulama"):
-        st.session_state.messages.append({"role": "assistant", "content": "Sorgulama ekranına yönlendiriliyorsunuz..."})
+        st.session_state.messages.append({"role": "assistant", "content": "Şikayetlerinizi takip edebileceğiniz panele yönlendiriliyorsunuz..."})
         st.session_state.sayfa = "portal"; st.rerun()
-
     if r1c3.button("📄 Evrak & Bilgi Rehberi"):
         st.session_state.evrak_aktif = True
-
-    if r2c1.button("🏢 Müdürlük ile İletişim & Belge Gönderimi"):
+    if r2c1.button("🏢 Müdürlük ile Doğrudan İletişim"):
         st.session_state.sayfa = "iletisim_kanali"; st.rerun()
-
     if r2c2.button("📞 Belediye İletişim Bilgileri"):
         ans = f"📞 **Tel:** {BELEDİYE_İLETİŞİM['telefon']} \n📍 **Adres:** {BELEDİYE_İLETİŞİM['konum']} \n⏰ **Mesai:** {BELEDİYE_İLETİŞİM['saat']}"
         st.session_state.messages.append({"role": "assistant", "content": ans}); st.rerun()
@@ -157,10 +158,10 @@ if st.session_state.sayfa == "asistan":
         st.session_state.messages.append({"role": "user", "content": prompt})
         p_low = prompt.lower()
         if any(x in p_low for x in ["şikayet", "sikayet", "oluştur"]):
-            st.session_state.messages.append({"role": "assistant", "content": "Sizi hemen yönlendiriyorum..."})
+            st.session_state.messages.append({"role": "assistant", "content": "Anlaşıldı, sizi hemen yönlendiriyorum..."})
             st.session_state.sayfa = "portal"; st.rerun()
         else:
-            st.session_state.messages.append({"role": "assistant", "content": "Size şikayet kaydı veya evraklar konusunda yardımcı olabilirim."})
+            st.session_state.messages.append({"role": "assistant", "content": "Size şikayet kaydı, evrak bilgisi veya iletişim konusunda yardımcı olabilirim."})
             st.rerun()
 
 # --- 🏢 BÖLÜM: MÜDÜRLÜK İLETİŞİM KANALI ---
@@ -171,8 +172,8 @@ elif st.session_state.sayfa == "iletisim_kanali":
     with st.form("direkt_iletisim", clear_on_submit=True):
         k_mud = st.selectbox("İletişime Geçilecek Müdürlük:", tum_birimler)
         k_mail = st.text_input("E-posta Adresiniz:")
-        k_sifre = st.text_input("Bu işlem için bir şifre belirleyiniz:", type="password", help="Yanıtı kontrol ederken bu şifreyi kullanacaksınız.")
-        k_mesaj = st.text_area("Mesajınız veya Sorunuz:")
+        k_sifre = st.text_input("Bu işlem için bir şifre belirleyiniz:", type="password")
+        k_mesaj = st.text_area("Mesajınız:")
         k_dosya = st.file_uploader("Belge Yükle (PDF, PNG, JPG):")
         submit_msg = st.form_submit_button("Mesajı ve Belgeyi Gönder")
         
@@ -188,7 +189,7 @@ elif st.session_state.sayfa == "iletisim_kanali":
 
                 yeni_mesaj = {
                     "Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "Gonderen": k_mail, "Sifre": k_sifre, "Mudurluk": k_mud, "Mesaj": temiz_msg,
+                    "Gonderen": k_mail, "Sifre": str(k_sifre), "Mudurluk": k_mud, "Mesaj": temiz_msg,
                     "Dosya_Adi": dosya_adi, "Cevap": "Bekleniyor"
                 }
                 pd.DataFrame([yeni_mesaj]).to_csv("mesajlar.csv", mode='a', header=not os.path.exists("mesajlar.csv"), index=False, encoding="utf-8-sig")
@@ -258,7 +259,7 @@ elif st.session_state.sayfa == "portal":
             
             df_m = mesaj_yukle()
             if not df_m.empty:
-                kendi_msj = df_m[(df_m["Gonderen"] == arama) & (df_m["Sifre"].astype(str) == sorgu_sifre)]
+                kendi_msj = df_m[(df_m["Gonderen"] == arama) & (df_m["Sifre"].astype(str) == str(sorgu_sifre))]
                 if not kendi_msj.empty:
                     st.write("---")
                     st.markdown("#### 💬 Müdürlüklerden Gelen Yanıtlar")
@@ -277,28 +278,29 @@ with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
         with admin_tab1:
             df_admin = veri_yukle()
             if not df_admin.empty:
-                filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
-                if not filtreli.empty:
-                    st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
-                    st.write("---")
-                    secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist(), key="islem_id")
-                    ci1, ci2 = st.columns(2)
-                    with ci1:
-                        yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"], key="durum_up")
-                        yonlendir = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim), key="yonlendir_up")
-                    with ci2:
-                        cevap_notu = st.text_area("Cevap Notu:", key="cevap_up")
-                    if st.button("Değişiklikleri Onayla"):
-                        idx = df_admin[df_admin["ID"] == secilen_id].index
-                        if not idx.empty:
-                            if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
-                                hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
-                                df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
-                            df_admin.at[idx[0], "Durum"] = yeni_durum
-                            df_admin.at[idx[0], "Müdürlük"] = yonlendir
-                            df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
-                            df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                            st.success("Kayıt güncellendi!"); st.rerun()
+                if "Müdürlük" in df_admin.columns:
+                    filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
+                    if not filtreli.empty:
+                        st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
+                        st.write("---")
+                        secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist(), key="islem_id")
+                        ci1, ci2 = st.columns(2)
+                        with ci1:
+                            yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"], key="durum_up")
+                            yonlendir = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim), key="yonlendir_up")
+                        with ci2:
+                            cevap_notu = st.text_area("Cevap Notu:", key="cevap_up")
+                        if st.button("Değişiklikleri Onayla"):
+                            idx = df_admin[df_admin["ID"] == secilen_id].index
+                            if not idx.empty:
+                                if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
+                                    hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
+                                    df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
+                                df_admin.at[idx[0], "Durum"] = yeni_durum
+                                df_admin.at[idx[0], "Müdürlük"] = yonlendir
+                                df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
+                                df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
+                                st.success("Kayıt güncellendi!"); st.rerun()
 
         with admin_tab2:
             st.markdown(f"#### {admin_birim} - Gelen Mesajlar ve Belgeler")
@@ -310,14 +312,15 @@ with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
                         with st.container(border=True):
                             st.write(f"**Gönderen:** {row['Gonderen']} | **Tarih:** {row['Tarih']}")
                             st.write(f"**Mesaj:** {row['Mesaj']}")
-                            if row['Dosya_Adi'] != "Yok":
-                                yol = os.path.join("yuklenen_belgeler", row['Dosya_Adi'])
+                            # Güvenli sütun kontrolü
+                            if 'Dosya_Adi' in row and row['Dosya_Adi'] != "Yok":
+                                yol = os.path.join("yuklenen_belgeler", str(row['Dosya_Adi']))
                                 if os.path.exists(yol):
                                     with open(yol, "rb") as f:
-                                        st.markdown(dosya_indirme_linki(f.read(), row['Dosya_Adi']), unsafe_allow_html=True)
+                                        st.markdown(dosya_indirme_linki(f.read(), str(row['Dosya_Adi'])), unsafe_allow_html=True)
                             adm_yanit = st.text_area("Yanıtınız:", key=f"yanit_{index}")
                             if st.button("Yanıtı Gönder", key=f"btn_{index}"):
                                 df_m.at[index, "Cevap"] = adm_yanit
                                 df_m.to_csv("mesajlar.csv", index=False, encoding="utf-8-sig")
                                 st.success("Yanıt iletildi!"); st.rerun()
-                else: st.info("Bu birime henüz direkt mesaj gelmemiş.")
+                else: st.info("Gelen mesaj yok.")
