@@ -107,7 +107,7 @@ elif st.session_state.sayfa == "sikayet_olustur":
                 if re.match(email_pattern, eposta, re.IGNORECASE):
                     st.success("E-posta formatı geçerli. ✅")
                     is_email_valid = True
-                else: st.warning("⚠️ Lütfen geçerli bir e-posta uzantısı giriniz (gmail, hotmail vb.)!")
+                else: st.warning("⚠️ Lütfen geçerli bir e-posta uzantısı giriniz.")
 
         with c2:
             soyad = st.text_input("Soyadınız", key="f_soyad")
