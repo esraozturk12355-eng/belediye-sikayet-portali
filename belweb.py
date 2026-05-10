@@ -12,6 +12,14 @@ st.set_page_config(
     page_icon="🏛️"
 )
 
+# --- ASİSTAN İÇİN BİLGİ BANKASI ---
+BELEDİYE_BİLGİLERİ = {
+    "konum": "Pazar Mah. Atatürk Bulvarı No:165, Ondokuzmayıs/SAMSUN",
+    "telefon": "0 (362) 511 44 88",
+    "çalışma_saatleri": "Hafta içi 08:30 - 17:30",
+    "web": "www.19mayis.bel.tr"
+}
+
 # --- ÜST BAŞLIK VE LOGO ALANI ---
 c1, c2 = st.columns([1, 6]) 
 with c1:
@@ -53,17 +61,47 @@ tum_birimler = sorted(list(set(list(sikayet_turleri_dict.keys()) + [
     "Destek Hizmetleri Müdürlüğü", "Yapı Kontrol Müdürlüğü"
 ])))
 
-# --- ANA SAYFA SEKMELERİ ---
-tab1, tab2 = st.tabs(["📝 Yeni Şikayet Oluştur", "🔍 Şikayetlerimi Görüntüle"])
+# --- ANA SAYFA SEKMELERİ (Asistan En Başa Eklendi) ---
+tab_ai, tab1, tab2 = st.tabs(["🤖 AI Belediye Asistanı", "📝 Yeni Şikayet Oluştur", "🔍 Şikayetlerimi Görüntüle"])
 
-# --- TAB 1: YENİ ŞİKAYET ---
+# --- 🤖 TAB: AI BELEDİYE ASİSTANI ---
+with tab_ai:
+    st.markdown("### 🤖 Size Nasıl Yardımcı Olabilirim?")
+    
+    if "messages" not in st.session_state:
+        st.session_state.messages = [{"role": "assistant", "content": "Merhaba! Ben belediye asistanınız. Size belediye konumu, telefon numarası gibi bilgiler verebilir veya işlemleriniz için rehberlik edebilirim. Ne yapmak istersiniz?"}]
+
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]): st.markdown(msg["content"])
+
+    if prompt := st.chat_input("Mesajınızı yazın (Örn: Belediye nerede?)"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"): st.markdown(prompt)
+        
+        p_low = prompt.lower()
+        if any(x in p_low for x in ["konum", "nerede", "adres"]):
+            ans = f"📍 Belediyemiz şu adrestedir: {BELEDİYE_BİLGİLERİ['konum']}"
+        elif any(x in p_low for x in ["telefon", "numara", "iletişim"]):
+            ans = f"📞 Bize şu numaradan ulaşabilirsiniz: {BELEDİYE_BİLGİLERİ['telefon']}"
+        elif "saat" in p_low or "çalışma" in p_low:
+            ans = f"⏰ Çalışma Saatlerimiz: {BELEDİYE_BİLGİLERİ['çalışma_saatleri']}"
+        elif "şikayet" in p_low or "sikayet" in p_low or "oluştur" in p_low:
+            ans = "Anladım, şikayet oluşturmak için lütfen yukarıdaki **'📝 Yeni Şikayet Oluştur'** sekmesine tıklayınız."
+        elif "sorgu" in p_low or "takip" in p_low or "nerede" in p_low:
+            ans = "Şikayetinizi sorgulamak için lütfen yukarıdaki **'🔍 Şikayetlerimi Görüntüle'** sekmesine tıklayınız."
+        else:
+            ans = "Size belediye bilgileri veya form yönlendirmeleri konusunda yardımcı olabilirim. Lütfen yapmak istediğiniz işlemi belirtin."
+        
+        st.session_state.messages.append({"role": "assistant", "content": ans})
+        with st.chat_message("assistant"): st.markdown(ans)
+
+# --- TAB 1: YENİ ŞİKAYET (ORİJİNAL KODUN) ---
 with tab1:
     st.markdown("### 📝 Yeni Şikayet Formu")
     c1, c2 = st.columns(2)
     with c1:
         ad = st.text_input("Adınız", key="ad_yeni")
         eposta = st.text_input("E-posta Adresiniz", key="mail_yeni")
-        # Gmail, Hotmail vb. kısıtlaması olan e-posta deseni
         email_pattern = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net)$'
         is_email_valid = False
         if eposta != "": 
@@ -92,7 +130,6 @@ with tab1:
                 if not birim_kayitlari.empty:
                     yeni_sira_no = int(birim_kayitlari["Sıra_No"].max()) + 1
             
-            # Benzersiz ID oluşturma
             sikayet_id = str(datetime.now().timestamp()).replace(".","")[-6:]
             yeni_kayit = {
                 "ID": sikayet_id, "Sıra_No": yeni_sira_no, 
@@ -109,7 +146,7 @@ with tab1:
         else:
             st.error("Lütfen formu eksiksiz ve doğru formatta doldurunuz.")
 
-# --- TAB 2: ŞİKAYET GÖRÜNTÜLEME ---
+# --- TAB 2: ŞİKAYET GÖRÜNTÜLEME (ORİJİNAL KODUN) ---
 with tab2:
     st.markdown("### 🔍 Şikayet Sorgulama")
     arama = st.text_input("E-posta veya Telefon numaranızı giriniz", key="sorgu_input")
@@ -117,7 +154,6 @@ with tab2:
         temiz_arama = tel_temizle(arama)
         df = veri_yukle()
         if not df.empty:
-            # Telefonları karşılaştırmak için sanal bir temiz sütun oluşturuyoruz
             df['Telefon_Temiz'] = df['Telefon'].apply(tel_temizle)
             sonuclar = df[(df["E-posta"] == arama) | (df["Telefon_Temiz"] == temiz_arama)]
             
@@ -129,7 +165,7 @@ with tab2:
         else:
             st.warning("⚠️ Sistemde henüz kayıtlı şikayet bulunmuyor.")
 
-# --- MÜDÜRLÜK PANELİ ---
+# --- MÜDÜRLÜK PANELİ (ORİJİNAL KODUN) ---
 st.divider()
 with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
     cp1, cp2 = st.columns(2)
@@ -158,7 +194,6 @@ with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
                     if st.button("Değişiklikleri Onayla"):
                         idx = df_admin[df_admin["ID"] == secilen_id].index
                         if not idx.empty:
-                            # Eğer müdürlük yönlendirmesi yapıldıysa yeni birimin en sonuna ekle
                             if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
                                 hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
                                 df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
