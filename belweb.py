@@ -60,7 +60,7 @@ EVRAK_REHBERI = {
 BELEDİYE_İLETİŞİM = {
     "konum": "Pazar Mah. Atatürk Bulvarı No:165, Ondokuzmayıs/SAMSUN",
     "telefon": "0 (362) 511 44 88",
-    "saat": "Hafta içi 08:30 - 17:30"
+    "saat": "Hafta içi 08:00 - 17:00"
 }
 
 # --- SESSION STATE ---
