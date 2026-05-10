@@ -207,18 +207,47 @@ elif st.session_state.sayfa == "portal":
                 if not sonuclar.empty:
                     st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
                 else: st.warning("Kayıt bulunamadı.")
-
-# --- MÜDÜRLÜK PANELİ (ADMIN) ---
+# --- MÜDÜRLÜK PANELİ ---
 st.divider()
 with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
     cp1, cp2 = st.columns(2)
-    with cp1: admin_birim = st.selectbox("Birim Seçiniz:", tum_birimler, key="adm_birim")
-    with cp2: sifre = st.text_input("Şifre:", type="password", key="adm_pass")
+    with cp1:
+        admin_birim = st.selectbox("Birim Seçiniz:", tum_birimler, key="adm_birim")
+    with cp2:
+        sifre = st.text_input("Şifre:", type="password", key="adm_pass")
+
     if sifre == "1234":
         df_admin = veri_yukle()
         if not df_admin.empty:
-            filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
-            if not filtreli.empty:
-                st.dataframe(filtreli)
-                secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist(), key="islem_id")
-                # ... (Admin işlemleri devam eder)
+            if "Müdürlük" in df_admin.columns:
+                filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
+                if not filtreli.empty:
+                    st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
+                    st.write("---")
+                    secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist(), key="islem_id")
+                    
+                    ci1, ci2 = st.columns(2)
+                    with ci1:
+                        yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"], key="durum_up")
+                        yonlendir = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim), key="yonlendir_up")
+                    with ci2:
+                        cevap_notu = st.text_area("Cevap Notu:", key="cevap_up")
+                    
+                    if st.button("Değişiklikleri Onayla"):
+                        idx = df_admin[df_admin["ID"] == secilen_id].index
+                        if not idx.empty:
+                            # Eğer müdürlük yönlendirmesi yapıldıysa yeni birimin en sonuna ekle
+                            if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
+                                hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
+                                df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
+                            
+                            df_admin.at[idx[0], "Durum"] = yeni_durum
+                            df_admin.at[idx[0], "Müdürlük"] = yonlendir
+                            df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
+                            df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
+                            
+                            st.success("Kayıt başarıyla güncellendi!")
+                            st.rerun()
+                else:
+                    st.info(f"{admin_birim} için henüz kayıtlı bir şikayet bulunmuyor.")
+
