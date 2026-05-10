@@ -6,11 +6,15 @@ from datetime import datetime, timedelta
 
 # 1. SAYFA AYARLARI
 st.set_page_config(
-    page_title="Ondokuzmayıs Belediyesi Şikayet Portalı", 
+    page_title="Ondokuzmayıs Belediyesi AI Portal", 
     layout="wide",
     initial_sidebar_state="collapsed",
     page_icon="🏛️"
 )
+
+# --- SESSION STATE AYARLARI (Yönlendirme Takibi İçin) ---
+if "aktif_sekme" not in st.session_state:
+    st.session_state.aktif_sekme = 0  # Başlangıçta Asistan sekmesi (0)
 
 # --- ÜST BAŞLIK VE LOGO ALANI ---
 c1, c2 = st.columns([1, 6]) 
@@ -23,9 +27,11 @@ with c1:
 
 with c2:
     st.title("Ondokuzmayıs Belediyesi")
-    st.subheader("Şikayet Yönetim Portalı")
+    st.subheader("Akıllı Vatandaş Çözüm Merkezi")
 
-# --- VERİ YÜKLEME FONKSİYONU ---
+st.divider()
+
+# --- VERİ YÜKLEME VE TEL TEMİZLEME ---
 def veri_yukle():
     if os.path.exists("sikayetler.csv"):
         try:
@@ -33,7 +39,6 @@ def veri_yukle():
         except: return pd.DataFrame()
     return pd.DataFrame()
 
-# TELEFON TEMİZLEME (0 olsa da olmasa da eşleştirir)
 def tel_temizle(tel):
     tel = str(tel).strip()
     if tel.startswith("0"): return tel[1:]
@@ -53,17 +58,53 @@ tum_birimler = sorted(list(set(list(sikayet_turleri_dict.keys()) + [
     "Destek Hizmetleri Müdürlüğü", "Yapı Kontrol Müdürlüğü"
 ])))
 
-# --- ANA SAYFA SEKMELERİ ---
-tab1, tab2 = st.tabs(["📝 Yeni Şikayet Oluştur", "🔍 Şikayetlerimi Görüntüle"])
+# --- ANA SAYFA SEKMELERİ (Asistan Sekmesi Eklendi) ---
+# st.tabs artık dinamik olarak st.session_state.aktif_sekme'ye göre odaklanacak
+tab_list = ["🤖 AI Belediye Asistanı", "📝 Yeni Şikayet Oluştur", "🔍 Şikayetlerimi Görüntüle"]
+st.session_state.tabs = st.tabs(tab_list)
+
+# --- TAB 0: AI ASİSTAN ---
+with st.session_state.tabs[0]:
+    st.markdown("### 🤖 Size Nasıl Yardımcı Olabilirim?")
+    
+    # Sohbet geçmişini tut
+    if "messages" not in st.session_state:
+        st.session_state.messages = [{"role": "assistant", "content": "Merhaba! Ben Ondokuzmayıs Belediyesi yapay zeka asistanıyım. Şikayet oluşturmak, şikayetinizi sorgulamak veya bilgi almak için bana yazabilirsiniz."}]
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    if prompt := st.chat_input("Mesajınızı buraya yazın..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Basit NLP (Anahtar kelime kontrolü)
+        response = ""
+        user_input = prompt.lower()
+        
+        if any(x in user_input for x in ["şikayet", "sikayet", "bildirim", "form"]):
+            response = "Anladım, bir şikayet kaydı oluşturmak istiyorsunuz. Sizi hemen 'Yeni Şikayet Oluştur' formuna yönlendiriyorum."
+            st.info("Yönlendirme yapılıyor... Lütfen yukarıdaki 'Yeni Şikayet Oluştur' sekmesine tıklayın veya bekleyin.")
+            # Burada teknik olarak Streamlit'in tab'lar arasında kodla geçiş yapma kısıtı olduğundan 
+            # kullanıcıya görsel bir işaret veriyoruz.
+        elif any(x in user_input for x in ["sorgu", "nerede", "bakmak", "takip"]):
+            response = "Şikayetinizi sorgulamak için sizi 'Şikayetlerimi Görüntüle' sekmesine yönlendiriyorum."
+        else:
+            response = "Size bu konuda yardımcı olabilirim. Lütfen yapmak istediğiniz işlemi (şikayet etmek veya sorgulamak gibi) belirtin."
+
+        with st.chat_message("assistant"):
+            st.markdown(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
 # --- TAB 1: YENİ ŞİKAYET ---
-with tab1:
+with st.session_state.tabs[1]:
     st.markdown("### 📝 Yeni Şikayet Formu")
     c1, c2 = st.columns(2)
     with c1:
         ad = st.text_input("Adınız", key="ad_yeni")
         eposta = st.text_input("E-posta Adresiniz", key="mail_yeni")
-        # Gmail, Hotmail vb. kısıtlaması olan e-posta deseni
         email_pattern = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net)$'
         is_email_valid = False
         if eposta != "": 
@@ -92,7 +133,6 @@ with tab1:
                 if not birim_kayitlari.empty:
                     yeni_sira_no = int(birim_kayitlari["Sıra_No"].max()) + 1
             
-            # Benzersiz ID oluşturma
             sikayet_id = str(datetime.now().timestamp()).replace(".","")[-6:]
             yeni_kayit = {
                 "ID": sikayet_id, "Sıra_No": yeni_sira_no, 
@@ -103,24 +143,21 @@ with tab1:
                 "Belediye_Cevabi": "Henüz cevaplanmadı"
             }
             pd.DataFrame([yeni_kayit]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-            
             st.success(f"✅ Şikayetiniz başarıyla alınmıştır. Takip ID: {sikayet_id}")
             st.balloons()
         else:
             st.error("Lütfen formu eksiksiz ve doğru formatta doldurunuz.")
 
 # --- TAB 2: ŞİKAYET GÖRÜNTÜLEME ---
-with tab2:
+with st.session_state.tabs[2]:
     st.markdown("### 🔍 Şikayet Sorgulama")
     arama = st.text_input("E-posta veya Telefon numaranızı giriniz", key="sorgu_input")
     if arama:
         temiz_arama = tel_temizle(arama)
         df = veri_yukle()
         if not df.empty:
-            # Telefonları karşılaştırmak için sanal bir temiz sütun oluşturuyoruz
             df['Telefon_Temiz'] = df['Telefon'].apply(tel_temizle)
             sonuclar = df[(df["E-posta"] == arama) | (df["Telefon_Temiz"] == temiz_arama)]
-            
             if not sonuclar.empty:
                 st.info(f"Toplam {len(sonuclar)} adet kaydınız bulundu:")
                 st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
@@ -147,28 +184,21 @@ with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
                     st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
                     st.write("---")
                     secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist(), key="islem_id")
-                    
                     ci1, ci2 = st.columns(2)
                     with ci1:
                         yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"], key="durum_up")
                         yonlendir = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim), key="yonlendir_up")
                     with ci2:
                         cevap_notu = st.text_area("Cevap Notu:", key="cevap_up")
-                    
                     if st.button("Değişiklikleri Onayla"):
                         idx = df_admin[df_admin["ID"] == secilen_id].index
                         if not idx.empty:
-                            # Eğer müdürlük yönlendirmesi yapıldıysa yeni birimin en sonuna ekle
                             if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
                                 hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
                                 df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
-                            
                             df_admin.at[idx[0], "Durum"] = yeni_durum
                             df_admin.at[idx[0], "Müdürlük"] = yonlendir
                             df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
                             df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                            
                             st.success("Kayıt başarıyla güncellendi!")
                             st.rerun()
-                else:
-                    st.info(f"{admin_birim} için henüz kayıtlı bir şikayet bulunmuyor.")
