@@ -12,16 +12,32 @@ st.set_page_config(
     page_icon="🏛️"
 )
 
-# --- ASİSTAN BİLGİ BANKASI ---
-BELEDİYE_BİLGİLERİ = {
+# --- GENİŞLETİLMİŞ EVRAK BİLGİ BANKASI ---
+EVRAK_REHBERI = {
+    "İmar ve Şehircilik Müdürlüğü": {
+        "İmar Durum Belgesi": ["Tapu Kaydı", "Aplikasyon Krokisi", "Dilekçe"],
+        "Yapı Ruhsatı": ["Tapu", "Mimari Proje", "Statik Proje", "Zemin Etüdü"],
+        "İskan (Yapı Kullanma)": ["SGK Borcu Yoktur Yazısı", "Vergi İlişik Kesme Belgesi", "Fenni Mesul Onayı"]
+    },
+    "Yazı İşleri Müdürlüğü": {
+        "Evlenme İşlemleri": ["Nüfus Kayıt Örneği", "Sağlık Raporu", "4 Adet Fotoğraf", "Kimlik Aslı"],
+        "Askerlik Borçlanması": ["Askerlik Durum Belgesi", "Kimlik Fotokopisi"],
+        "Dilekçe Sorgulama": ["Başvuru Takip Numarası", "Kimlik Bilgisi"]
+    },
+    "Mali Hizmetler Müdürlüğü": {
+        "Emlak Vergisi Muafiyeti": ["Emekli/Engelli Belgesi", "Tapu Fotokopisi", "Başvuru Formu"],
+        "Rayiç Bedel Belgesi": ["Tapu Fotokopisi", "Kimlik Bilgisi", "Borçsuzluk Yazısı"]
+    },
+    "Veteriner İşleri Müdürlüğü": {
+        "Evcil Hayvan Kayıt": ["Hayvan Pasaportu", "Çip Bilgisi", "Sahip Kimlik Bilgisi"],
+        "Sahiplendirme": ["İkametgah Belgesi", "Kimlik Fotokopisi", "Sahiplenme Sözleşmesi"]
+    }
+}
+
+BELEDİYE_İLETİŞİM = {
     "konum": "Pazar Mah. Atatürk Bulvarı No:165, Ondokuzmayıs/SAMSUN",
     "telefon": "0 (362) 511 44 88",
-    "saat": "Hafta içi 08:30 - 17:30",
-    "evrak": {
-        "İmar": "Tapu, Mimari Proje, İmar Durum Belgesi.",
-        "Yazı İşleri": "Kimlik Fotokopisi, Islak İmzalı Dilekçe.",
-        "Nikah": "Sağlık Raporu, 4 Fotoğraf, Nüfus Kayıt Örneği."
-    }
+    "saat": "Hafta içi 08:30 - 17:30"
 }
 
 # --- SESSION STATE ---
@@ -45,7 +61,7 @@ with c2:
 
 st.divider()
 
-# --- FONKSİYONLAR ---
+# --- TEMEL FONKSİYONLAR ---
 def veri_yukle():
     if os.path.exists("sikayetler.csv"):
         try:
@@ -58,18 +74,9 @@ def tel_temizle(tel):
     if tel.startswith("0"): return tel[1:]
     return tel
 
-# MÜDÜRLÜKLER
-sikayet_turleri_dict = {
-    "Yazı İşleri Müdürlüğü": ["Evrak işlemleri", "Bilgi eksikliği", "Diğer"],
-    "Veteriner İşleri Müdürlüğü": ["Sokak hayvanları", "Yaralı hayvan", "Diğer"],
-    "Fen İşleri Müdürlüğü": ["Yol bozukluğu", "Kaldırım hasarı", "Diğer"],
-    "Zabıta Müdürlüğü": ["Gürültü", "Kaldırım işgali", "Diğer"],
-    "İmar ve Şehircilik Müdürlüğü": ["Ruhsat işlemleri", "Kaçak yapı", "Diğer"],
-    "Mali Hizmetler Müdürlüğü": ["Vergi borcu", "Ödeme problemleri", "Diğer"]
-}
-tum_birimler = sorted(list(set(list(sikayet_turleri_dict.keys()) + [
-    "Emlak ve İstimlak Müdürlüğü", "İklim Değişikliği ve Sıfır Atık Müdürlüğü", 
-    "Destek Hizmetleri Müdürlüğü", "Yapı Kontrol Müdürlüğü"
+tum_birimler = sorted(list(set(list(EVRAK_REHBERI.keys()) + [
+    "Fen İşleri Müdürlüğü", "Zabıta Müdürlüğü", "Emlak ve İstimlak Müdürlüğü", 
+    "İklim Değişikliği ve Sıfır Atık Müdürlüğü", "Destek Hizmetleri Müdürlüğü"
 ])))
 
 # --- 🤖 BÖLÜM 1: AI ASİSTAN ---
@@ -81,33 +88,48 @@ if st.session_state.sayfa == "asistan":
         with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
     st.write("### Hızlı İşlemler")
-    row1_col1, row1_col2 = st.columns(2)
-    row2_col1, row2_col2 = st.columns(2)
+    btn_c1, btn_c2, btn_c3 = st.columns(3)
 
-    if row1_col1.button("📝 Şikayet Oluşturmak İstiyorum"):
+    if btn_c1.button("📝 Şikayet Oluştur"):
         st.session_state.messages.append({"role": "assistant", "content": "Anlaşıldı, sizi hemen yeni şikayet oluşturma sayfasına yönlendiriyorum..."})
         st.session_state.sayfa = "portal"; st.rerun()
 
-    if row1_col2.button("🔍 Şikayetlerimi Görüntülemek İstiyorum"):
-        st.session_state.messages.append({"role": "assistant", "content": "Tamamdır, şikayet sorgulama ekranına sizi yönlendiriyorum..."})
+    if btn_c2.button("🔍 Şikayet Sorgula"):
+        st.session_state.messages.append({"role": "assistant", "content": "Tamamdır, şikayetlerinizi takip edebileceğiniz sorgulama ekranına yönlendiriliyorsunuz..."})
         st.session_state.sayfa = "portal"; st.rerun()
 
-    if row2_col1.button("📄 Evrak Bilgisi Almak İstiyorum"):
-        ans = "Gerekli evrak bilgileri: \n" + "\n".join([f"- **{k}**: {v}" for k, v in BELEDİYE_BİLGİLERİ['evrak'].items()])
+    if btn_c3.button("📞 İletişim Bilgileri"):
+        ans = f"📞 **Telefon:** {BELEDİYE_İLETİŞİM['telefon']} \n📍 **Adres:** {BELEDİYE_İLETİŞİM['konum']} \n⏰ **Mesai:** {BELEDİYE_İLETİŞİM['saat']}"
         st.session_state.messages.append({"role": "assistant", "content": ans}); st.rerun()
 
-    if row2_col2.button("📞 İletişim Bilgileri"):
-        ans = f"📞 **Tel:** {BELEDİYE_BİLGİLERİ['telefon']} \n📍 **Adres:** {BELEDİYE_BİLGİLERİ['konum']}"
-        st.session_state.messages.append({"role": "assistant", "content": ans}); st.rerun()
+    # --- YENİ İNTERAKTİF EVRAK BÖLÜMÜ ---
+    st.write("---")
+    st.markdown("### 📄 Evrak Sorgulama Rehberi")
+    secilen_mud = st.selectbox("Bilgi almak istediğiniz müdürlüğü seçiniz:", ["Seçiniz..."] + list(EVRAK_REHBERI.keys()))
+    
+    if secilen_mud != "Seçiniz...":
+        islem_listesi = list(EVRAK_REHBERI[secilen_mud].keys())
+        secilen_islem = st.selectbox("Yapmak istediğiniz işlemi seçiniz:", ["Seçiniz..."] + islem_listesi)
+        
+        if secilen_islem != "Seçiniz...":
+            evraklar = EVRAK_REHBERI[secilen_mud][secilen_islem]
+            st.info(f"**{secilen_islem}** işlemi için gerekli evraklar:")
+            for e in evraklar:
+                st.write(f"- {e}")
+            
+            if st.button("Bu konuda asistanla konuş"):
+                msg = f"{secilen_mud} bünyesindeki {secilen_islem} işlemi için bilgi aldım."
+                st.session_state.messages.append({"role": "user", "content": msg})
+                st.rerun()
 
     if prompt := st.chat_input("Veya buraya yazın..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         p_low = prompt.lower()
-        if any(x in p_low for x in ["şikayet", "sikayet", "oluştur"]):
-            st.session_state.messages.append({"role": "assistant", "content": "Tabii ki, sizi sayfaya yönlendiriyorum..."})
+        if any(x in p_low for x in ["şikayet", "sikayet"]):
+            st.session_state.messages.append({"role": "assistant", "content": "Sizi şikayet sayfasına yönlendiriyorum..."})
             st.session_state.sayfa = "portal"; st.rerun()
         else:
-            st.session_state.messages.append({"role": "assistant", "content": "Size şikayet süreçleri hakkında yardımcı olabilirim."})
+            st.session_state.messages.append({"role": "assistant", "content": "Size şikayet süreçleri ve gerekli evraklar konusunda rehberlik edebilirim."})
             st.rerun()
 
 # --- 📝 BÖLÜM 2: ANA PORTAL (VATANDAŞ EKRANI) ---
@@ -117,6 +139,7 @@ elif st.session_state.sayfa == "portal":
 
     tab1, tab2 = st.tabs(["📝 Yeni Şikayet Oluştur", "🔍 Şikayetlerimi Görüntüle"])
 
+    # --- ŞİKAYET OLUŞTURMA ---
     with tab1:
         st.markdown("### 📝 Yeni Şikayet Formu")
         c1, c2 = st.columns(2)
@@ -126,15 +149,15 @@ elif st.session_state.sayfa == "portal":
             email_pattern = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net)$'
             is_email_valid = False
             if eposta != "" and re.match(email_pattern, eposta, re.IGNORECASE):
-                st.success("E-posta geçerli. ✅"); is_email_valid = True
-            elif eposta != "": st.warning("⚠️ Geçerli e-posta giriniz!")
+                st.success("E-posta formatı geçerli. ✅"); is_email_valid = True
+            elif eposta != "": st.warning("⚠️ Geçerli bir e-posta giriniz!")
         with c2: 
             soyad = st.text_input("Soyadınız", key="soyad_yeni")
             telefon_input = st.text_input("Telefon Numaranız", key="tel_yeni")
         
-        secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", tum_birimler, key="mud_yeni")
-        tur_listesi = sikayet_turleri_dict.get(secilen_mudurluk, ["Genel Şikayet", "Diğer"])
-        sikayet_turu = st.selectbox("Şikayet Türü", tur_listesi, key="tur_yeni")
+        # Dinamik Müdürlük ve Tür Seçimi
+        mud_liste = sorted(list(set(tum_birimler)))
+        secilen_mudurluk = st.selectbox("İlgili Müdürlüğü Seçiniz", mud_liste, key="mud_yeni")
         detay = st.text_area("Şikayet Detayı", key="detay_yeni")
         
         if st.button("Şikayeti Kaydet"):
@@ -150,13 +173,14 @@ elif st.session_state.sayfa == "portal":
                 yeni_kayit = {
                     "ID": sikayet_id, "Sıra_No": yeni_sira_no, "Tarih": (datetime.now() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M"),
                     "Ad": ad, "Soyad": soyad, "E-posta": eposta, "Telefon": temiz_tel,
-                    "Müdürlük": secilen_mudurluk, "Tür": sikayet_turu, "Detay": detay.replace(",", " "), 
+                    "Müdürlük": secilen_mudurluk, "Detay": detay.replace(",", " "), 
                     "Durum": "İnceleniyor", "Belediye_Cevabi": "Henüz cevaplanmadı"
                 }
                 pd.DataFrame([yeni_kayit]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-                st.success(f"✅ Şikayet Alındı. ID: {sikayet_id}"); st.balloons()
+                st.success(f"✅ Şikayet Alındı. Takip ID: {sikayet_id}"); st.balloons()
             else: st.error("Lütfen formu eksiksiz doldurunuz.")
 
+    # --- SORGULAMA ---
     with tab2:
         st.markdown("### 🔍 Şikayet Sorgulama")
         arama = st.text_input("E-posta veya Telefon numaranızı giriniz", key="sorgu_input")
@@ -167,6 +191,7 @@ elif st.session_state.sayfa == "portal":
                 df['Telefon_Temiz'] = df['Telefon'].apply(tel_temizle)
                 sonuclar = df[(df["E-posta"] == arama) | (df["Telefon_Temiz"] == temiz_arama)]
                 if not sonuclar.empty:
+                    st.info(f"{len(sonuclar)} kayıt bulundu.")
                     st.table(sonuclar[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
                 else: st.warning("Kayıt bulunamadı.")
 
@@ -181,31 +206,29 @@ with st.expander("🏢 Müdürlük Yönetim Paneli (Yetkili Girişi)"):
         st.success(f"Hoş geldiniz {admin_birim} Yetkilisi.")
         df_admin = veri_yukle()
         if not df_admin.empty:
-            if "Müdürlük" in df_admin.columns:
-                filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
-                if not filtreli.empty:
-                    st.dataframe(filtreli[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
-                    st.write("---")
-                    secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist(), key="islem_id")
-                    
-                    ci1, ci2 = st.columns(2)
-                    with ci1:
-                        yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"], key="durum_up")
-                        yonlendir = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim), key="yonlendir_up")
-                    with ci2:
-                        cevap_notu = st.text_area("Cevap Notu (Vatandaşa iletilecek):", key="cevap_up")
-                    
-                    if st.button("Değişiklikleri Kaydet ve Onayla"):
-                        idx = df_admin[df_admin["ID"] == secilen_id].index
-                        if not idx.empty:
-                            # Yönlendirme yapıldıysa sıra no güncelle
-                            if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
-                                hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
-                                df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
-                            
-                            df_admin.at[idx[0], "Durum"] = yeni_durum
-                            df_admin.at[idx[0], "Müdürlük"] = yonlendir
-                            df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
-                            df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                            st.success("Kayıt güncellendi!"); st.rerun()
-                else: st.info(f"{admin_birim} için bekleyen şikayet bulunmuyor.")
+            filtreli = df_admin[df_admin["Müdürlük"] == admin_birim].sort_values(by="Sıra_No")
+            if not filtreli.empty:
+                st.dataframe(filtreli)
+                st.write("---")
+                secilen_id = st.selectbox("İşlem Yapılacak ID Seçiniz:", filtreli["ID"].tolist(), key="islem_id")
+                
+                ci1, ci2 = st.columns(2)
+                with ci1:
+                    yeni_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "İşleme Alındı", "Tamamlandı", "Reddedildi"], key="durum_up")
+                    yonlendir = st.selectbox("Başka Birime Yönlendir:", tum_birimler, index=tum_birimler.index(admin_birim), key="yonlendir_up")
+                with ci2:
+                    cevap_notu = st.text_area("Cevap Notu:", key="cevap_up")
+                
+                if st.button("Değişiklikleri Kaydet"):
+                    idx = df_admin[df_admin["ID"] == secilen_id].index
+                    if not idx.empty:
+                        if df_admin.at[idx[0], "Müdürlük"] != yonlendir:
+                            hedef = df_admin[df_admin["Müdürlük"] == yonlendir]
+                            df_admin.at[idx[0], "Sıra_No"] = 1 if hedef.empty else hedef["Sıra_No"].max() + 1
+                        
+                        df_admin.at[idx[0], "Durum"] = yeni_durum
+                        df_admin.at[idx[0], "Müdürlük"] = yonlendir
+                        df_admin.at[idx[0], "Belediye_Cevabi"] = cevap_notu
+                        df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
+                        st.success("Güncellendi!"); st.rerun()
+            else: st.info("Bekleyen kayıt yok.")
