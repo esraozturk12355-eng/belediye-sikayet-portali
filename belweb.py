@@ -192,7 +192,7 @@ elif st.session_state.portal_modu == "vatandas":
             det = st.text_area("Detaylar")
             if st.button("Talebi Gönder", disabled=not (ad and soyad and m_valid and p_valid)):
                 pd.DataFrame([{"ID": str(time.time()).replace(".","")[-6:], "Tarih": tr_saat(), "Ad": ad, "Soyad": soyad, "E-posta": ep, "Telefon": tel_temizle(tel), "Müdürlük": mud_sec, "Durum": "İnceleniyor", "Belediye_Cevabi": "Henüz cevaplanmadı"}]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-                st.success("✅ Talebiniz Türkiye saati ile iletildi!"); time.sleep(2); st.rerun()
+                st.success("✅ Talebiniz iletildi!"); time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "talep_sorgu":
         st.markdown("### 🔍 Takip ve Sorgulama")
