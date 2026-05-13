@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import re
 import base64
+import time
 from datetime import datetime, timedelta
 
 # 1. SAYFA AYARLARI
@@ -111,7 +112,8 @@ elif st.session_state.portal_modu == "vatandas":
                 if ad and soyad and re.match(EMAIL_PATTERN, ep, re.IGNORECASE) and re.match(PHONE_PATTERN, tel):
                     sid = str(datetime.now().timestamp()).replace(".","")[-6:]
                     pd.DataFrame([{"ID": sid, "Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": ad, "Soyad": soyad, "E-posta": ep, "Telefon": tel, "Müdürlük": mud_sec, "Tür": tur_sec, "Detay": det, "Durum": "İnceleniyor", "Belediye_Cevabi": "Henüz cevaplanmadı"}]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-                    st.success("✅ Talebiniz başarıyla iletildi! Takip ID: " + sid); st.balloons()
+                    st.success("✅ Talebiniz başarıyla iletildi! Takip ID: " + sid)
+                    time.sleep(2); st.rerun()
                 else: st.error("Lütfen tüm alanları doğru formatta doldurun.")
 
     elif st.session_state.sayfa == "talep_sorgu":
@@ -150,7 +152,8 @@ elif st.session_state.portal_modu == "vatandas":
                                         fn = f"rep_{datetime.now().strftime('%H%M%S')}_{rf.name}"
                                         with open(os.path.join("yuklenen_belgeler", fn), "wb") as f: f.write(rf.getbuffer())
                                     pd.DataFrame([{"Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": current.iloc[0]["Ad"], "Soyad": current.iloc[0]["Soyad"], "Gonderen": arama, "Telefon": temiz, "Sifre": sf, "Mudurluk": b_sec, "Mesaj": rm, "Dosya_Adi": fn, "Cevap": "Bekleniyor", "Mudurluk_Dosya": "Yok"}]).to_csv("mesajlar.csv", mode='a', header=False, index=False, encoding="utf-8-sig")
-                                    st.success("✅ Mesajınız başarıyla iletildi!"); st.rerun()
+                                    st.success("✅ Yanıtınız iletildi!")
+                                    time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "mudurluk_sohbet":
         st.markdown("### 💬 Müdürlükle Yeni Sohbet")
@@ -171,7 +174,8 @@ elif st.session_state.portal_modu == "vatandas":
                             fn = f"init_{datetime.now().strftime('%H%M%S')}_{u_f.name}"
                             with open(os.path.join("yuklenen_belgeler", fn), "wb") as f: f.write(u_f.getbuffer())
                         pd.DataFrame([{"Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": u_ad, "Soyad": u_soyad, "Gonderen": u_mail, "Telefon": u_tel, "Sifre": u_pass, "Mudurluk": u_mud, "Mesaj": u_msg, "Dosya_Adi": fn, "Cevap": "Bekleniyor", "Mudurluk_Dosya": "Yok"}]).to_csv("mesajlar.csv", mode='a', header=not os.path.exists("mesajlar.csv"), index=False, encoding="utf-8-sig")
-                        st.success("✅ Mesajınız başarıyla iletildi!"); st.rerun()
+                        st.success("✅ Mesajınız başarıyla iletildi!")
+                        time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "evrak_rehberi":
         st.markdown("### 📄 Evrak Rehberi")
@@ -184,7 +188,7 @@ elif st.session_state.portal_modu == "mudurluk":
     if st.sidebar.button("🏠 Ana Karşılama"): st.session_state.portal_modu = "karşılama"; st.rerun()
     st.markdown("### 🏢 Müdürlük Paneli")
     c1, c2 = st.columns(2)
-    adm_b = c1.selectbox("Birim:", tum_birimler); adm_s = c2.text_input("Şifre:", type="password")
+    adm_b = c1.selectbox("Biriminiz:", tum_birimler); adm_s = c2.text_input("Şifre:", type="password")
     if adm_s == "1234":
         t1, t2 = st.tabs(["📋 Talepler", "💬 Sohbetler"])
         with t1:
@@ -204,7 +208,9 @@ elif st.session_state.portal_modu == "mudurluk":
                             df_t.at[idx[0], "Belediye_Cevabi"] = ans
                             df_t.at[idx[0], "Durum"] = yd if ys == adm_b else "Sevk Edildi"
                             df_t.at[idx[0], "Müdürlük"] = ys
-                            df_t.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig"); st.rerun()
+                            df_t.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
+                            st.success("✅ Güncellendi!")
+                            time.sleep(1.5); st.rerun()
         with t2:
             df_m = mesaj_yukle()
             bm = df_m[df_m["Mudurluk"] == adm_b]
@@ -226,4 +232,6 @@ elif st.session_state.portal_modu == "mudurluk":
                             fn = f"adm_{datetime.now().strftime('%H%M%S')}_{f.name}"
                             with open(os.path.join("belediye_belgeleri", fn), "wb") as file: file.write(f.getbuffer())
                         df_m.at[vg.index[-1], "Cevap"] = a; df_m.at[vg.index[-1], "Mudurluk_Dosya"] = fn
-                        df_m.to_csv("mesajlar.csv", index=False, encoding="utf-8-sig"); st.rerun()
+                        df_m.to_csv("mesajlar.csv", index=False, encoding="utf-8-sig")
+                        st.success("✅ Yanıtınız iletildi!")
+                        time.sleep(1.5); st.rerun()
