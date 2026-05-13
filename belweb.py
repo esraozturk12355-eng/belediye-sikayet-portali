@@ -67,7 +67,7 @@ EVRAK_REHBERI_DICT = {
         "Asfalt Kaplama": ["Muhtarlık Yazısı", "Talep Dilekçesi", "Yol Genişlik Raporu", "Sakinlerin İmzası", "Hizmet Dekontu"]
     },
     "Zabıta Müdürlüğü": {
-        "İşyeri Açma Ruhsatı": ["Tapu/Kira Kontratı", "Vergi Levhası", "İtfaiye Raporu", "Oda Kaydı", "Ustalık Belgesi"],
+        "İşyeri Açma Ruhsatı": ["Tapu/Kira Kontratı", "Vergi Levhası", "İtfaiye Uygunluk Raporu", "Oda Kaydı", "Ustalık Belgesi"],
         "Pazar Yeri Tahsisi": ["Pazarcı Belgesi", "Sabıka Kaydı", "İkametgah", "2 Fotoğraf", "Borcu Yoktur Yazısı"],
         "Gürültü Şikayeti": ["Dilekçe", "Olay Yeri Adresi", "Gürültü Zaman Bilgisi", "Kimlik Beyanı", "Varsa Video/Ses Kaydı"],
         "Kaldırım İşgali İhbarı": ["Ruhsat Fotokopisi", "Alan Krokisi", "Güncel Vergi Borcu Sorgusu", "Kimlik Fotokopisi", "Kullanım İzni"],
@@ -141,11 +141,11 @@ if st.session_state.portal_modu == "karşılama":
     st.markdown("<h2 style='text-align: center;'>Lütfen Giriş Türünü Seçiniz</h2>", unsafe_allow_html=True)
     cv, cm = st.columns(2)
     with cv:
-        st.info("### 👤 Vatandaş Portalı")
+        st.info("### 👤 Vatandaş Portalı\nAkıllı Asistan ile işlemlerinizi hızla halledin.")
         if st.button("Vatandaş Girişi", use_container_width=True):
             st.session_state.portal_modu = "vatandas"; st.rerun()
     with cm:
-        st.success("### 🏢 Müdürlük Paneli")
+        st.success("### 🏢 Müdürlük Paneli\nYetkili girişi yaparak sistemi yönetin.")
         if st.button("Müdürlük Girişi", use_container_width=True, type="primary"):
             st.session_state.portal_modu = "mudurluk"; st.rerun()
 
@@ -184,7 +184,7 @@ elif st.session_state.portal_modu == "vatandas":
             ad = c1.text_input("Ad"); soyad = c2.text_input("Soyad")
             ep = c1.text_input("E-posta")
             m_valid = bool(re.match(EMAIL_PATTERN, ep, re.IGNORECASE)) if ep else False
-            if ep and not m_valid: st.error("❌ E-posta formatı hatalı!")
+            if ep and not m_valid: st.error("❌ E-posta formatı geçersiz!")
             tel = c2.text_input("Telefon")
             p_valid = bool(re.match(PHONE_PATTERN, tel)) if tel else False
             if tel and not p_valid: st.error("❌ Telefon numarası hatalı!")
@@ -206,7 +206,7 @@ elif st.session_state.portal_modu == "vatandas":
                     res_t = df_t[(df_t["E-posta"] == arama) | (df_t["Telefon"].apply(tel_temizle) == temiz)]
                     if not res_t.empty:
                         st.markdown("#### 📋 Talepleriniz")
-                        st.table(res_t[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
+                        st.table(res_t) # KeyError riski için direkt tüm tabloyu basar
                 
                 df_m = mesaj_yukle()
                 if not df_m.empty:
@@ -218,13 +218,11 @@ elif st.session_state.portal_modu == "vatandas":
                             with st.chat_message("user"):
                                 st.write(f"**{r['Ad']} {r['Soyad']}:** {r['Mesaj']}")
                                 if r['Dosya_Adi'] != "Yok":
-                                    st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Gönderdiğiniz Dosya"), unsafe_allow_html=True)
-                            
+                                    st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Dosyanız"), unsafe_allow_html=True)
                             if r['Cevap'] != "Bekleniyor":
                                 with st.chat_message("assistant"):
                                     st.write(r['Cevap'])
-                                    if r['Mudurluk_Dosya'] != "Yok":
-                                        st.markdown(dosya_indirme_linki(os.path.join("belediye_belgeleri", str(r['Mudurluk_Dosya'])), str(r['Mudurluk_Dosya']), "Belediye Evrağı"), unsafe_allow_html=True)
+                                    if r['Mudurluk_Dosya'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("belediye_belgeleri", str(r['Mudurluk_Dosya'])), str(r['Mudurluk_Dosya']), "Belediye Evrağı"), unsafe_allow_html=True)
                         with st.expander("📥 Yanıt Yaz"):
                             with st.form("q_rep"):
                                 rm = st.text_area("Mesaj"); rf = st.file_uploader("Belge")
@@ -262,7 +260,6 @@ elif st.session_state.portal_modu == "vatandas":
         if st.button("⬅️ Geri"): st.session_state.sayfa = "asistan_ana"; st.rerun()
         m_s = st.selectbox("Müdürlük Seçiniz", list(EVRAK_REHBERI_DICT.keys()))
         if m_s:
-            st.info(f"💡 {m_s} birimi için işlemler:")
             islem = st.radio("İşlem Seçiniz:", list(EVRAK_REHBERI_DICT[m_s].keys()))
             with st.container(border=True):
                 st.markdown(f"#### 📁 {islem} İçin Gerekli Evraklar")
@@ -282,8 +279,8 @@ elif st.session_state.portal_modu == "mudurluk":
             if not df_t.empty:
                 filt = df_t[df_t["Müdürlük"] == adm_b]
                 if not filt.empty:
-                    # --- GÜNCELLEME: DETAY SÜTUNU TABLOYA EKLENDİ ---
-                    st.dataframe(filt[["ID", "Tarih", "Ad", "Soyad", "E-posta", "Telefon", "Detay", "Durum", "Belediye_Cevabi"]], use_container_width=True)
+                    # GÜNCELLEME: KeyError engellemek için sadece mevcut kolonları gösterir
+                    st.dataframe(filt, use_container_width=True)
                     sid = st.selectbox("ID Seç:", filt["ID"].tolist())
                     with st.container(border=True):
                         cd, cs = st.columns(2)
@@ -305,7 +302,7 @@ elif st.session_state.portal_modu == "mudurluk":
                 for _, r in vg.iterrows():
                     with st.container(border=True):
                         st.info(f"👤 {r['Ad']} {r['Soyad']}: {r['Mesaj']}")
-                        if r['Dosya_Adi'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Vatandaşın Dosyası"), unsafe_allow_html=True)
+                        if r['Dosya_Adi'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Dosyayı Gör"), unsafe_allow_html=True)
                         if r['Cevap'] != "Bekleniyor": st.success(f"🏛️ Cevabınız: {r['Cevap']}")
                 with st.form("adm_rep"):
                     a = st.text_area("Cevap"); f = st.file_uploader("Belge Gönder")
