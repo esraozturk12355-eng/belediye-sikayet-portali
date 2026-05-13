@@ -243,7 +243,7 @@ elif st.session_state.sayfa == "iletisim_kanali":
         k_mail = st.text_input("E-posta Adresiniz:")
         # E-posta Doğrulaması
         is_msg_mail_valid = bool(re.match(EMAIL_PATTERN, k_mail, re.IGNORECASE)) if k_mail else False
-        if k_mail != "" and not is_msg_mail_valid: st.warning("⚠️ Lütfen geçerli bir e-posta adresi (örneğin: ad@gmail.com) giriniz!")
+        if k_mail != "" and not is_msg_mail_valid: st.warning("⚠️ Lütfen geçerli bir e-posta adresi giriniz!")
         
         k_tel = st.text_input("Telefon:")
         k_sifre = st.text_input("Şifre:", type="password")
