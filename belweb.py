@@ -140,7 +140,7 @@ elif st.session_state.portal_modu == "vatandas":
                     "Vatandaş Açıklaması": det, # BURASI ÖNEMLİ
                     "Durum": "İnceleniyor", "Belediye_Cevabi": "Henüz cevaplanmadı"
                 }]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-                st.success("✅ Talebiniz Türkiye saati ile iletildi!"); time.sleep(2); st.rerun()
+                st.success("✅ Talebiniz iletildi!"); time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "talep_sorgu":
         st.markdown("### 🔍 Takip ve Sorgulama")
