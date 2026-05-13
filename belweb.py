@@ -251,7 +251,7 @@ elif st.session_state.sayfa == "iletisim_kanali":
         is_msg_mail_valid = bool(re.match(EMAIL_PATTERN, k_mail, re.IGNORECASE)) if k_mail else False
         if k_mail != "" and not is_msg_mail_valid: st.warning("⚠️ Geçerli bir e-posta giriniz!")
         
-        k_tel = st.text_input("Telefon Numaranız (05xx...):")
+        k_tel = st.text_input("Telefon Numaranız:")
         is_msg_phone_valid = bool(re.match(PHONE_PATTERN, k_tel)) if k_tel else False
         if k_tel != "" and not is_msg_phone_valid: st.warning("⚠️ Geçerli bir telefon numarası giriniz!")
         
