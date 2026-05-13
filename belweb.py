@@ -41,7 +41,7 @@ def tel_temizle(tel):
     return tel
 
 def dosya_indirme_linki(dosya_yolu, dosya_adi, etiket="İndir"):
-    if not os.path.exists(dosya_yolu): return f"⚠️ {dosya_adi} yok"
+    if not os.path.exists(dosya_yolu): return f"⚠️ Dosya Bulunamadı"
     with open(dosya_yolu, "rb") as f: data = f.read()
     b64 = base64.b64encode(data).decode()
     return f'<a href="data:application/octet-stream;base64,{b64}" download="{dosya_adi}" style="text-decoration:none; background-color:#4CAF50; color:white; padding:6px 12px; border-radius:4px; font-size:13px; font-weight:bold;">📩 {etiket}</a>'
@@ -112,9 +112,8 @@ elif st.session_state.portal_modu == "vatandas":
                 if ad and soyad and re.match(EMAIL_PATTERN, ep, re.IGNORECASE) and re.match(PHONE_PATTERN, tel):
                     sid = str(datetime.now().timestamp()).replace(".","")[-6:]
                     pd.DataFrame([{"ID": sid, "Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": ad, "Soyad": soyad, "E-posta": ep, "Telefon": tel, "Müdürlük": mud_sec, "Tür": tur_sec, "Detay": det, "Durum": "İnceleniyor", "Belediye_Cevabi": "Henüz cevaplanmadı"}]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-                    st.success("✅ Talebiniz başarıyla iletildi! Takip ID: " + sid)
+                    st.success("✅ Talebiniz başarıyla iletildi!")
                     time.sleep(2); st.rerun()
-                else: st.error("Lütfen tüm alanları doğru formatta doldurun.")
 
     elif st.session_state.sayfa == "talep_sorgu":
         st.markdown("### 🔍 Takip ve Sorgulama")
@@ -139,9 +138,14 @@ elif st.session_state.portal_modu == "vatandas":
                         for _, r in current.iterrows():
                             with st.chat_message("user"):
                                 st.write(f"**{r['Ad']} {r['Soyad']}:** {r['Mesaj']}")
-                                if r['Dosya_Adi'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi'])), unsafe_allow_html=True)
+                                if r['Dosya_Adi'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Dosyanız"), unsafe_allow_html=True)
                             if r['Cevap'] != "Bekleniyor":
-                                with st.chat_message("assistant"): st.write(f"**Belediye:** {r['Cevap']}")
+                                with st.chat_message("assistant"):
+                                    st.write(f"**Belediye:** {r['Cevap']}")
+                                    # --- BURASI EKLENDİ: BELEDİYE DOSYASI İNDİRME ---
+                                    if r['Mudurluk_Dosya'] != "Yok":
+                                        yol_b = os.path.join("belediye_belgeleri", str(r['Mudurluk_Dosya']))
+                                        st.markdown(dosya_indirme_linki(yol_b, str(r['Mudurluk_Dosya']), "Belediye Evrağını İndir"), unsafe_allow_html=True)
                         with st.expander("📥 Yanıt Yaz / Belge Gönder"):
                             with st.form("q_rep"):
                                 rm = st.text_area("Mesaj"); rf = st.file_uploader("Belge")
@@ -174,7 +178,7 @@ elif st.session_state.portal_modu == "vatandas":
                             fn = f"init_{datetime.now().strftime('%H%M%S')}_{u_f.name}"
                             with open(os.path.join("yuklenen_belgeler", fn), "wb") as f: f.write(u_f.getbuffer())
                         pd.DataFrame([{"Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": u_ad, "Soyad": u_soyad, "Gonderen": u_mail, "Telefon": u_tel, "Sifre": u_pass, "Mudurluk": u_mud, "Mesaj": u_msg, "Dosya_Adi": fn, "Cevap": "Bekleniyor", "Mudurluk_Dosya": "Yok"}]).to_csv("mesajlar.csv", mode='a', header=not os.path.exists("mesajlar.csv"), index=False, encoding="utf-8-sig")
-                        st.success("✅ Mesajınız başarıyla iletildi!")
+                        st.success("✅ Mesajınız iletildi!")
                         time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "evrak_rehberi":
@@ -209,8 +213,7 @@ elif st.session_state.portal_modu == "mudurluk":
                             df_t.at[idx[0], "Durum"] = yd if ys == adm_b else "Sevk Edildi"
                             df_t.at[idx[0], "Müdürlük"] = ys
                             df_t.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                            st.success("✅ Güncellendi!")
-                            time.sleep(1.5); st.rerun()
+                            st.success("✅ Güncellendi!"); time.sleep(1); st.rerun()
         with t2:
             df_m = mesaj_yukle()
             bm = df_m[df_m["Mudurluk"] == adm_b]
@@ -221,7 +224,7 @@ elif st.session_state.portal_modu == "mudurluk":
                 for _, r in vg.iterrows():
                     with st.container(border=True):
                         st.info(f"👤 {r['Ad']} {r['Soyad']}: {r['Mesaj']}")
-                        if r['Dosya_Adi'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Dosyayı Gör"), unsafe_allow_html=True)
+                        if r['Dosya_Adi'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Vatandaşın Dosyası"), unsafe_allow_html=True)
                         if r['Cevap'] != "Bekleniyor": st.success(f"🏛️ Cevabınız: {r['Cevap']}")
                 with st.form("adm_rep"):
                     a = st.text_area("Cevap"); f = st.file_uploader("Belge")
@@ -233,5 +236,4 @@ elif st.session_state.portal_modu == "mudurluk":
                             with open(os.path.join("belediye_belgeleri", fn), "wb") as file: file.write(f.getbuffer())
                         df_m.at[vg.index[-1], "Cevap"] = a; df_m.at[vg.index[-1], "Mudurluk_Dosya"] = fn
                         df_m.to_csv("mesajlar.csv", index=False, encoding="utf-8-sig")
-                        st.success("✅ Yanıtınız iletildi!")
-                        time.sleep(1.5); st.rerun()
+                        st.success("✅ Yanıtınız iletildi!"); time.sleep(1.5); st.rerun()
