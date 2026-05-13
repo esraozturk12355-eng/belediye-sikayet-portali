@@ -15,9 +15,7 @@ st.set_page_config(
 )
 
 # --- REGEX VE FONKSİYONLAR ---
-# E-posta: Uzantı ve @ zorunlu
 EMAIL_PATTERN = r'^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|icloud|yandex|yahoo|windowslive)\.(com|com\.tr|net|org)$'
-# Telefon: Başında 0 olsun/olmasın 10 veya 11 hane (5xx... veya 05xx...)
 PHONE_PATTERN = r'^(0?)[5][0-9]{9}$'
 
 def veri_yukle():
@@ -105,19 +103,23 @@ elif st.session_state.portal_modu == "vatandas":
         if st.button("⬅️ Geri"): st.session_state.sayfa = "asistan_ana"; st.rerun()
         with st.container(border=True):
             c1, c2 = st.columns(2)
-            ad = c1.text_input("Ad"); soyad = c2.text_input("Soyad")
+            ad = c1.text_input("Ad")
+            soyad = c2.text_input("Soyad")
             ep = c1.text_input("E-posta")
             m_valid = bool(re.match(EMAIL_PATTERN, ep, re.IGNORECASE)) if ep else False
-            if ep and not m_valid: st.error("❌ Geçersiz e-posta formatı!")
-            tel = c2.text_input("Telefon (05xx... veya 5xx...)")
+            if ep and not m_valid: st.error("❌ E-posta formatı hatalı!")
+            
+            tel = c2.text_input("Telefon")
             p_valid = bool(re.match(PHONE_PATTERN, tel)) if tel else False
-            if tel and not p_valid: st.error("❌ Geçersiz telefon numarası!")
+            if tel and not p_valid: st.error("❌ Telefon numarası hatalı!")
+            
             mud_sec = st.selectbox("Müdürlük", tum_birimler)
             det = st.text_area("Detaylar")
             if st.button("Talebi Gönder", disabled=not (ad and soyad and m_valid and p_valid)):
                 sid = str(datetime.now().timestamp()).replace(".","")[-6:]
                 pd.DataFrame([{"ID": sid, "Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": ad, "Soyad": soyad, "E-posta": ep, "Telefon": tel_temizle(tel), "Müdürlük": mud_sec, "Durum": "İnceleniyor", "Belediye_Cevabi": "Henüz cevaplanmadı"}]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-                st.success("✅ Talebiniz başarıyla iletildi!"); time.sleep(2); st.rerun()
+                st.success("✅ Talebiniz başarıyla iletildi!")
+                time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "talep_sorgu":
         st.markdown("### 🔍 Takip ve Sorgulama")
@@ -156,17 +158,20 @@ elif st.session_state.portal_modu == "vatandas":
         with st.container(border=True):
             with st.form("init_chat"):
                 c1, c2 = st.columns(2)
-                u_ad = c1.text_input("Ad"); u_soyad = c2.text_input("Soyad")
+                u_ad = c1.text_input("Ad")
+                u_soyad = c2.text_input("Soyad")
                 u_mail = c1.text_input("E-posta")
                 m_valid_chat = bool(re.match(EMAIL_PATTERN, u_mail, re.IGNORECASE)) if u_mail else False
                 if u_mail and not m_valid_chat: st.error("❌ E-posta formatı hatalı!")
                 
-                u_tel = c2.text_input("Telefon (05xx... veya 5xx...)")
+                u_tel = c2.text_input("Telefon")
                 p_valid_chat = bool(re.match(PHONE_PATTERN, u_tel)) if u_tel else False
                 if u_tel and not p_valid_chat: st.error("❌ Telefon numarası hatalı!")
                 
                 u_pass = st.text_input("Sohbet Şifresi Belirle", type="password")
-                u_mud = st.selectbox("Birim", tum_birimler); u_msg = st.text_area("Mesaj"); u_f = st.file_uploader("Belge")
+                u_mud = st.selectbox("Birim", tum_birimler)
+                u_msg = st.text_area("Mesaj")
+                u_f = st.file_uploader("Belge")
                 
                 if st.form_submit_button("Sohbeti Başlat"):
                     if u_ad and u_soyad and m_valid_chat and p_valid_chat and u_pass:
@@ -190,6 +195,7 @@ elif st.session_state.portal_modu == "vatandas":
 # --- 🏢 3. EKRAN: MÜDÜRLÜK PANELİ ---
 elif st.session_state.portal_modu == "mudurluk":
     if st.sidebar.button("🏠 Ana Karşılama"): st.session_state.portal_modu = "karşılama"; st.rerun()
+    st.markdown("### 🏢 Müdürlük Paneli")
     c1, c2 = st.columns(2)
     adm_b = c1.selectbox("Biriminiz:", tum_birimler); adm_s = c2.text_input("Şifre:", type="password")
     if adm_s == "1234":
@@ -232,4 +238,5 @@ elif st.session_state.portal_modu == "mudurluk":
                             fn = f"adm_{datetime.now().strftime('%H%M%S')}_{f.name}"
                             with open(os.path.join("belediye_belgeleri", fn), "wb") as file: file.write(f.getbuffer())
                         df_m.at[vg.index[-1], "Cevap"] = a; df_m.at[vg.index[-1], "Mudurluk_Dosya"] = fn
-                        df_m.to_csv("mesajlar.csv", index=False, encoding="utf-8-sig"); st.success("✅ İletildi!"); time.sleep(1.5); st.rerun()
+                        df_m.to_csv("mesajlar.csv", index=False, encoding="utf-8-sig")
+                        st.success("✅ Yanıtınız iletildi!"); time.sleep(1.5); st.rerun()
