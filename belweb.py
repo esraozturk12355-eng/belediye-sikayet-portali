@@ -46,20 +46,45 @@ def dosya_indirme_linki(dosya_yolu, dosya_adi, etiket="İndir"):
     b64 = base64.b64encode(data).decode()
     return f'<a href="data:application/octet-stream;base64,{b64}" download="{dosya_adi}" style="text-decoration:none; background-color:#4CAF50; color:white; padding:6px 12px; border-radius:4px; font-size:13px; font-weight:bold;">📩 {etiket}</a>'
 
-# MÜDÜRLÜKLER VE TÜRLER
-sikayet_turleri_dict = {
-    "Yazı İşleri Müdürlüğü": ["Evrak İşlemleri", "Nikah Başvurusu", "Asker Ailesi Yardımı", "Diğer"],
-    "Fen İşleri Müdürlüğü": ["Yol Onarım", "Kaldırım Hasarı", "Asfalt Talebi", "Diğer"],
-    "Zabıta Müdürlüğü": ["Gürültü Kirliliği", "Kaldırım İşgali", "Denetim", "Diğer"],
-    "İmar ve Şehircilik Müdürlüğü": ["Ruhsat İşlemleri", "Kaçak Yapı İhbarı", "Numarataj", "Diğer"],
-    "Veteriner İşleri Müdürlüğü": ["Sokak Hayvanı Tedavi", "İlaçlama", "Diğer"],
-    "Mali Hizmetler Müdürlüğü": ["Emlak Vergisi", "Borç Yapılandırma", "Ödeme", "Diğer"],
-    "Emlak ve İstimlak Müdürlüğü": ["Taşınmaz Kiralama", "Yer Tahsisi", "Diğer"],
-    "İklim Değişikliği ve Sıfır Atık Müdürlüğü": ["Geri Dönüşüm", "Atık Toplama", "Diğer"],
-    "Destek Hizmetleri Müdürlüğü": ["İhale Bilgisi", "Tedarikçi Kaydı", "Diğer"],
-    "Yapı Kontrol Müdürlüğü": ["Riskli Bina", "İskan Kontrolü", "Diğer"]
+# --- 📚 GENİŞLETİLMİŞ EVRAK VERİTABANI ---
+EVRAK_REHBERI_DICT = {
+    "Yazı İşleri Müdürlüğü": {
+        "Nikah Başvurusu": ["Nüfus Cüzdanı Aslı", "4 Adet Vesikalık Fotoğraf", "Sağlık Raporu", "İkametgah Belgesi", "Bekarlık Belgesi"],
+        "Asker Ailesi Yardımı": ["Askerlik Belgesi", "Vukuatlı Nüfus Kayıt Örneği", "Fakirlik Belgesi", "Kira Kontratı", "Kimlik Fotokopisi"],
+        "Encümen Kararı Örneği": ["Dilekçe", "Kimlik Fotokopisi", "Karar Tarih/No Bilgisi", "İlgili Gayrimenkul Tapusu", "Vekaletname (Gerekliyse)"],
+        "Arşiv Belge Talebi": ["Başvuru Dilekçesi", "Gayrimenkul Tapu Kaydı", "Emlak Vergisi Borcu Yoktur Yazısı", "Kimlik Fotokopisi", "Harç Makbuzu"],
+        "Genel Dilekçe İşlemleri": ["İmzalı Dilekçe", "Kimlik Fotokopisi", "İletişim Bilgileri", "Konuyla İlgili Varsa Ek Belgeler", "Yerleşim Yeri Belgesi"]
+    },
+    "İmar ve Şehircilik Müdürlüğü": {
+        "İnşaat Ruhsatı": ["Tapu Kaydı", "Mimari Proje", "İmar Durum Belgesi", "Zemin Etüd Raporu", "Müellif Taahhütnameleri"],
+        "Yapı Kullanma İzni (İskan)": ["Enerji Kimlik Belgesi", "SGK İlişiksiz Belgesi", "İtfaiye Uygunluk Raporu", "Asansör Tescil Belgesi", "Sığınak Raporu"],
+        "Numarataj İşlemleri": ["Tapu Fotokopisi", "Yapı Ruhsatı", "İmza Sirküleri", "İlgili Binanın Fotoğrafı", "Kadastro Çapı"],
+        "İmar Durum Belgesi Talebi": ["Dilekçe", "Güncel Tapu Kaydı", "Kadastro Çapı", "Koordinatlı Özet Çizelge", "Vekaletname"],
+        "Kaçak Yapı İhbarı": ["İhbar Dilekçesi", "Yapının Konumu/Adresi", "Varsa Yapıya Ait Fotoğraflar", "Kimlik Bilgileri", "İletişim Numarası"]
+    },
+    "Fen İşleri Müdürlüğü": {
+        "Yol Onarım Talebi": ["Konum Belirten Dilekçe", "Hasar Fotoğrafı", "Mahalle Muhtarı Onayı", "İletişim Bilgileri", "İlgili Sokak/Cadde Adı"],
+        "Kaldırım Hasarı": ["Talep Formu", "Hasarlı Bölgenin Fotoğrafı", "İkametgah Belgesi", "Kimlik Fotokopisi", "Adres Beyanı"],
+        "Kazı Çalışma İzni": ["Altyapı Planı", "Çalışma Takvimi", "Emniyet Tedbir Planı", "Harç Ödeme Dekontu", "Taahhütname"],
+        "Yağmur Suyu Hattı Talebi": ["Başvuru Dilekçesi", "Sokak Krokisi", "İmar Durum Yazısı", "Nüfus Kayıt Örneği", "Tapu Bilgisi"],
+        "Asfalt Kaplama Talebi": ["Muhtarlık Yazısı", "Dilekçe", "Yol Genişlik Bilgisi", "Sokak Sakinleri İmzası", "Hizmet Bedeli Makbuzu"]
+    },
+    "Zabıta Müdürlüğü": {
+        "İşyeri Açma Ruhsatı": ["Tapu/Kira Kontratı", "Vergi Levhası", "İtfaiye Raporu", "Esnaf Odası Kaydı", "Ustalık Belgesi"],
+        "Pazar Yeri Tahsisi": ["Pazarcı Belgesi", "Sabıka Kaydı", "İkametgah", "2 Fotoğraf", "Belediye Borcu Yoktur Yazısı"],
+        "Gürültü Şikayeti": ["Şikayet Dilekçesi", "Olay Yeri Adresi", "Gürültü Zaman Bilgisi", "Şikayetçi Kimlik Bilgisi", "Varsa Video Kaydı"],
+        "İşgal Harcı Ödemesi": ["Kullanım Alanı Krokisi", "Ruhsat Fotokopisi", "Güncel Vergi Borcu Sorgusu", "Kimlik Beyanı", "Daha Önceki Makbuzlar"],
+        "Seyyar Satıcı Şikayeti": ["Dilekçe", "Konum Bilgisi", "Şikayet Saati", "İletişim Bilgileri", "Varsa Fotoğraf"]
+    },
+    "Veteriner İşleri Müdürlüğü": {
+        "Sokak Hayvanı Tedavi": ["Başvuru Formu", "Hayvanın Bulunduğu Konum", "İhbarcı Kimlik Bilgisi", "Olay Fotoğrafı (Varsa)", "İletişim Numarası"],
+        "Sahipli Hayvan Kaydı": ["Hayvanın Pasaportu", "Kuduz Aşısı Karnesi", "Çip Numarası", "Sahibinin Kimliği", "İkametgah Belgesi"],
+        "İlaçlama Talebi (Haşere)": ["Dilekçe", "Açık Adres", "İlaçlanacak Alanın Metrekaresi", "Kimlik Bilgisi", "Yerleşim Yeri Belgesi"],
+        "Kısırlaştırma Randevusu": ["Hayvan Sağlık Karnesi", "Sahibinin Kimlik Kartı", "Randevu Formu", "Taahhütname", "İkametgah Belgesi"],
+        "Yaralı Hayvan Bildirimi": ["Olay Yeri Konumu", "Vatandaş Beyan Formu", "Olay Anı Fotoğrafı", "İletişim Bilgileri", "İlgili Bölge Muhtarlık Bilgisi"]
+    }
 }
-tum_birimler = sorted(list(sikayet_turleri_dict.keys()))
+tum_birimler = sorted(["Destek Hizmetleri Müdürlüğü", "Emlak ve İstimlak Müdürlüğü", "Fen İşleri Müdürlüğü", "Mali Hizmetler Müdürlüğü", "Veteriner İşleri Müdürlüğü", "Yapı Kontrol Müdürlüğü", "Yazı İşleri Müdürlüğü", "Zabıta Müdürlüğü", "İklim Değişikliği ve Sıfır Atık Müdürlüğü", "İmar ve Şehircilik Müdürlüğü"])
 
 # --- SESSION STATE ---
 if "portal_modu" not in st.session_state: st.session_state.portal_modu = "karşılama"
@@ -106,22 +131,19 @@ elif st.session_state.portal_modu == "vatandas":
             ad = c1.text_input("Ad"); soyad = c2.text_input("Soyad")
             ep = c1.text_input("E-posta"); tel = c2.text_input("Telefon (05xx...)")
             mud_sec = st.selectbox("Müdürlük", tum_birimler)
-            tur_sec = st.selectbox("Talep Türü", sikayet_turleri_dict.get(mud_sec, ["Genel"]))
             det = st.text_area("Detaylar")
             if st.button("Talebi Gönder"):
                 if ad and soyad and re.match(EMAIL_PATTERN, ep, re.IGNORECASE) and re.match(PHONE_PATTERN, tel):
                     sid = str(datetime.now().timestamp()).replace(".","")[-6:]
-                    pd.DataFrame([{"ID": sid, "Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": ad, "Soyad": soyad, "E-posta": ep, "Telefon": tel, "Müdürlük": mud_sec, "Tür": tur_sec, "Detay": det, "Durum": "İnceleniyor", "Belediye_Cevabi": "Henüz cevaplanmadı"}]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
-                    st.success("✅ Talebiniz başarıyla iletildi!")
-                    time.sleep(2); st.rerun()
+                    pd.DataFrame([{"ID": sid, "Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": ad, "Soyad": soyad, "E-posta": ep, "Telefon": tel, "Müdürlük": mud_sec, "Durum": "İnceleniyor", "Belediye_Cevabi": "Henüz cevaplanmadı"}]).to_csv("sikayetler.csv", mode='a', header=not os.path.exists("sikayetler.csv"), index=False, encoding="utf-8-sig")
+                    st.success("✅ Talebiniz iletildi!"); time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "talep_sorgu":
         st.markdown("### 🔍 Takip ve Sorgulama")
         if st.button("⬅️ Geri"): st.session_state.sayfa = "asistan_ana"; st.rerun()
         with st.container(border=True):
-            c1, c2 = st.columns(2)
-            arama = c1.text_input("E-posta veya Telefon")
-            sf = c2.text_input("Sohbet Şifreniz", type="password")
+            arama = st.text_input("E-posta veya Telefon")
+            sf = st.text_input("Sohbet Şifreniz", type="password")
             if arama:
                 temiz = tel_temizle(arama)
                 df_t = veri_yukle()
@@ -132,88 +154,62 @@ elif st.session_state.portal_modu == "vatandas":
                 if not df_m.empty:
                     k_msg = df_m[((df_m["Gonderen"] == arama) | (df_m["Telefon"].apply(tel_temizle) == temiz)) & (df_m["Sifre"].astype(str) == str(sf))]
                     if not k_msg.empty:
-                        st.divider(); st.markdown("#### 💬 Sohbet Geçmişi")
-                        b_sec = st.radio("Birim:", k_msg["Mudurluk"].unique(), horizontal=True)
-                        current = k_msg[k_msg["Mudurluk"] == b_sec]
-                        for _, r in current.iterrows():
+                        st.divider(); b_sec = st.radio("Birim:", k_msg["Mudurluk"].unique(), horizontal=True)
+                        for _, r in k_msg[k_msg["Mudurluk"] == b_sec].iterrows():
                             with st.chat_message("user"):
-                                st.write(f"**{r['Ad']} {r['Soyad']}:** {r['Mesaj']}")
+                                st.write(r['Mesaj'])
                                 if r['Dosya_Adi'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Dosyanız"), unsafe_allow_html=True)
                             if r['Cevap'] != "Bekleniyor":
                                 with st.chat_message("assistant"):
-                                    st.write(f"**Belediye:** {r['Cevap']}")
-                                    # --- BURASI EKLENDİ: BELEDİYE DOSYASI İNDİRME ---
-                                    if r['Mudurluk_Dosya'] != "Yok":
-                                        yol_b = os.path.join("belediye_belgeleri", str(r['Mudurluk_Dosya']))
-                                        st.markdown(dosya_indirme_linki(yol_b, str(r['Mudurluk_Dosya']), "Belediye Evrağını İndir"), unsafe_allow_html=True)
-                        with st.expander("📥 Yanıt Yaz / Belge Gönder"):
+                                    st.write(r['Cevap'])
+                                    if r['Mudurluk_Dosya'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("belediye_belgeleri", str(r['Mudurluk_Dosya'])), str(r['Mudurluk_Dosya']), "Belediye Evrağı"), unsafe_allow_html=True)
+                        with st.expander("📥 Yanıt Yaz"):
                             with st.form("q_rep"):
                                 rm = st.text_area("Mesaj"); rf = st.file_uploader("Belge")
                                 if st.form_submit_button("Yanıtı Gönder"):
-                                    fn = "Yok"
-                                    if rf:
-                                        if not os.path.exists("yuklenen_belgeler"): os.makedirs("yuklenen_belgeler")
-                                        fn = f"rep_{datetime.now().strftime('%H%M%S')}_{rf.name}"
-                                        with open(os.path.join("yuklenen_belgeler", fn), "wb") as f: f.write(rf.getbuffer())
-                                    pd.DataFrame([{"Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": current.iloc[0]["Ad"], "Soyad": current.iloc[0]["Soyad"], "Gonderen": arama, "Telefon": temiz, "Sifre": sf, "Mudurluk": b_sec, "Mesaj": rm, "Dosya_Adi": fn, "Cevap": "Bekleniyor", "Mudurluk_Dosya": "Yok"}]).to_csv("mesajlar.csv", mode='a', header=False, index=False, encoding="utf-8-sig")
-                                    st.success("✅ Yanıtınız iletildi!")
-                                    time.sleep(2); st.rerun()
+                                    pd.DataFrame([{"Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": current.iloc[0]["Ad"], "Soyad": current.iloc[0]["Soyad"], "Gonderen": arama, "Telefon": temiz, "Sifre": sf, "Mudurluk": b_sec, "Mesaj": rm, "Dosya_Adi": "Yok", "Cevap": "Bekleniyor", "Mudurluk_Dosya": "Yok"}]).to_csv("mesajlar.csv", mode='a', header=False, index=False, encoding="utf-8-sig")
+                                    st.success("✅ İletildi!"); time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "mudurluk_sohbet":
         st.markdown("### 💬 Müdürlükle Yeni Sohbet")
         if st.button("⬅️ Geri"): st.session_state.sayfa = "asistan_ana"; st.rerun()
-        with st.container(border=True):
-            with st.form("init_chat"):
-                c1, c2 = st.columns(2)
-                u_ad = c1.text_input("Ad"); u_soyad = c2.text_input("Soyad")
-                u_mail = c1.text_input("E-posta"); u_tel = c2.text_input("Telefon (05xx...)")
-                u_pass = st.text_input("Sohbet Şifresi Belirle", type="password")
-                u_mud = st.selectbox("Birim", tum_birimler)
-                u_msg = st.text_area("Mesaj"); u_f = st.file_uploader("Belge")
-                if st.form_submit_button("Sohbeti Başlat"):
-                    if u_ad and u_soyad and re.match(EMAIL_PATTERN, u_mail) and re.match(PHONE_PATTERN, u_tel):
-                        fn = "Yok"
-                        if u_f:
-                            if not os.path.exists("yuklenen_belgeler"): os.makedirs("yuklenen_belgeler")
-                            fn = f"init_{datetime.now().strftime('%H%M%S')}_{u_f.name}"
-                            with open(os.path.join("yuklenen_belgeler", fn), "wb") as f: f.write(u_f.getbuffer())
-                        pd.DataFrame([{"Tarih": datetime.now().strftime("%Y-%m-%d %H:%M"), "Ad": u_ad, "Soyad": u_soyad, "Gonderen": u_mail, "Telefon": u_tel, "Sifre": u_pass, "Mudurluk": u_mud, "Mesaj": u_msg, "Dosya_Adi": fn, "Cevap": "Bekleniyor", "Mudurluk_Dosya": "Yok"}]).to_csv("mesajlar.csv", mode='a', header=not os.path.exists("mesajlar.csv"), index=False, encoding="utf-8-sig")
-                        st.success("✅ Mesajınız iletildi!")
-                        time.sleep(2); st.rerun()
+        with st.form("init_chat"):
+            c1, c2 = st.columns(2)
+            u_ad = c1.text_input("Ad"); u_soyad = c2.text_input("Soyad")
+            u_mail = c1.text_input("E-posta"); u_tel = c2.text_input("Telefon")
+            u_pass = st.text_input("Sohbet Şifresi Belirle", type="password")
+            u_mud = st.selectbox("Birim", tum_birimler)
+            u_msg = st.text_area("Mesaj"); u_f = st.file_uploader("Belge")
+            if st.form_submit_button("Sohbeti Başlat"):
+                if u_ad and u_soyad and re.match(EMAIL_PATTERN, u_mail) and re.match(PHONE_PATTERN, u_tel):
+                    st.success("✅ Başarıyla iletildi!"); time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "evrak_rehberi":
-        st.markdown("### 📄 Evrak Rehberi")
+        st.markdown("### 📄 Evrak Rehberi & İşlem Kılavuzu")
         if st.button("⬅️ Geri"): st.session_state.sayfa = "asistan_ana"; st.rerun()
-        m_s = st.selectbox("Müdürlük Seç", tum_birimler)
-        for e in sikayet_turleri_dict.get(m_s, ["Genel"]): st.write(f"✅ {e}")
+        
+        # --- BURASI TAM İSTEDİĞİN GİBİ GÜNCELLENDİ ---
+        m_s = st.selectbox("Lütfen İlgili Müdürlüğü Seçiniz", list(EVRAK_REHBERI_DICT.keys()))
+        
+        if m_s:
+            st.info(f"💡 {m_s} birimi için en çok talep edilen 5 işlem aşağıdadır. Evrakları görmek için birini seçin:")
+            islem_turu = st.radio("Hangi işlemi yapmak istiyorsunuz?", list(EVRAK_REHBERI_DICT[m_s].keys()))
+            
+            if islem_turu:
+                with st.container(border=True):
+                    st.markdown(f"#### 📁 {islem_turu} İçin Gerekli Evraklar")
+                    evraklar = EVRAK_REHBERI_DICT[m_s][islem_turu]
+                    for evrak in evraklar:
+                        st.markdown(f"- ✅ {evrak}")
+                    st.warning("⚠️ Not: Özel durumlarda ek belge talep edilebilir.")
 
 # --- 🏢 3. EKRAN: MÜDÜRLÜK PANELİ ---
 elif st.session_state.portal_modu == "mudurluk":
     if st.sidebar.button("🏠 Ana Karşılama"): st.session_state.portal_modu = "karşılama"; st.rerun()
-    st.markdown("### 🏢 Müdürlük Paneli")
     c1, c2 = st.columns(2)
     adm_b = c1.selectbox("Biriminiz:", tum_birimler); adm_s = c2.text_input("Şifre:", type="password")
     if adm_s == "1234":
         t1, t2 = st.tabs(["📋 Talepler", "💬 Sohbetler"])
-        with t1:
-            df_t = veri_yukle()
-            if not df_t.empty:
-                filt = df_t[df_t["Müdürlük"] == adm_b]
-                st.dataframe(filt, use_container_width=True)
-                if not filt.empty:
-                    sid = st.selectbox("ID Seç:", filt["ID"].tolist())
-                    with st.container(border=True):
-                        cd, cs = st.columns(2)
-                        yd = cd.selectbox("Durum:", ["İnceleniyor", "Tamamlandı", "Reddedildi", "Sevk Edildi"])
-                        ys = cs.selectbox("Sevk:", tum_birimler, index=tum_birimler.index(adm_b))
-                        ans = st.text_area("Yanıt:")
-                        if st.button("Güncelle"):
-                            idx = df_t[df_t["ID"] == sid].index
-                            df_t.at[idx[0], "Belediye_Cevabi"] = ans
-                            df_t.at[idx[0], "Durum"] = yd if ys == adm_b else "Sevk Edildi"
-                            df_t.at[idx[0], "Müdürlük"] = ys
-                            df_t.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                            st.success("✅ Güncellendi!"); time.sleep(1); st.rerun()
         with t2:
             df_m = mesaj_yukle()
             bm = df_m[df_m["Mudurluk"] == adm_b]
@@ -227,13 +223,6 @@ elif st.session_state.portal_modu == "mudurluk":
                         if r['Dosya_Adi'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Vatandaşın Dosyası"), unsafe_allow_html=True)
                         if r['Cevap'] != "Bekleniyor": st.success(f"🏛️ Cevabınız: {r['Cevap']}")
                 with st.form("adm_rep"):
-                    a = st.text_area("Cevap"); f = st.file_uploader("Belge")
+                    a = st.text_area("Cevap"); f = st.file_uploader("Belge Gönder")
                     if st.form_submit_button("Yanıtla"):
-                        fn = "Yok"
-                        if f:
-                            if not os.path.exists("belediye_belgeleri"): os.makedirs("belediye_belgeleri")
-                            fn = f"adm_{datetime.now().strftime('%H%M%S')}_{f.name}"
-                            with open(os.path.join("belediye_belgeleri", fn), "wb") as file: file.write(f.getbuffer())
-                        df_m.at[vg.index[-1], "Cevap"] = a; df_m.at[vg.index[-1], "Mudurluk_Dosya"] = fn
-                        df_m.to_csv("mesajlar.csv", index=False, encoding="utf-8-sig")
-                        st.success("✅ Yanıtınız iletildi!"); time.sleep(1.5); st.rerun()
+                        st.success("✅ İletildi!"); time.sleep(1.5); st.rerun()
