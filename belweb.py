@@ -185,7 +185,7 @@ elif st.session_state.sayfa == "evrak_ekrani":
             st.info(f"📋 **{i_sec}** için istenen belgeler:")
             for b in EVRAK_DATABANK[m_sec][i_sec]: st.write(f"✅ {b}")
 
-# --- 🔍 4. SAYFA: SORGULAMA VE SOHBET (Bulunamadı Uyarısı Eklendi) ---
+# --- 🔍 4. SAYFA: SORGULAMA VE SOHBET ---
 elif st.session_state.sayfa == "sorgu_ekrani":
     st.markdown("### 🔍 Şikayet Sorgulama & Sohbet Geçmişi")
     if st.button("⬅️ Geri Dön"): st.session_state.sayfa = "asistan"; st.rerun()
@@ -196,7 +196,6 @@ elif st.session_state.sayfa == "sorgu_ekrani":
         temiz_arama = tel_temizle(arama)
         kayit_bulundu = False
         
-        # 1. Şikayet Kayıt Kontrolü
         df_s = veri_yukle()
         if not df_s.empty:
             res = df_s[(df_s["E-posta"] == arama) | (df_s["Telefon"].apply(tel_temizle) == temiz_arama)]
@@ -205,7 +204,6 @@ elif st.session_state.sayfa == "sorgu_ekrani":
                 st.table(res[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
                 kayit_bulundu = True
         
-        # 2. Mesajlaşma Kayıt Kontrolü
         df_m = mesaj_yukle()
         if not df_m.empty:
             kendi_msgs = df_m[((df_m["Gonderen"] == arama) | (df_m["Telefon"].apply(tel_temizle) == temiz_arama)) & (df_m["Sifre"].astype(str) == str(sifre_chat))]
@@ -222,7 +220,7 @@ elif st.session_state.sayfa == "sorgu_ekrani":
                 kayit_bulundu = True
         
         if not kayit_bulundu:
-            st.error("⚠️ Girdiğiniz bilgilere ait bir kayıt sistemde bulunamadı. Lütfen bilgilerinizi kontrol ediniz.")
+            st.error("⚠️ Girdiğiniz bilgilere ait bir kayıt sistemde bulunamadı.")
 
 # --- 🏢 5. SAYFA: İLETİŞİM KANALI ---
 elif st.session_state.sayfa == "iletisim_kanali":
@@ -246,7 +244,7 @@ elif st.session_state.sayfa == "iletisim_kanali":
                 pd.DataFrame([yeni]).to_csv("mesajlar.csv", mode='a', header=not os.path.exists("mesajlar.csv"), index=False, encoding="utf-8-sig")
                 st.success("Mesaj iletildi!")
 
-# --- 🏢 MÜDÜRLÜK PANELİ (ADMIN) ---
+# --- 🏢 MÜDÜRLÜK PANELİ (TÜM ÖZELLİKLER GERİ GELDİ) ---
 st.divider()
 with st.expander("🏢 Müdürlük Yönetim Paneli"):
     adm_b = st.selectbox("Biriminiz:", tum_birimler, key="adm_birim")
@@ -256,17 +254,30 @@ with st.expander("🏢 Müdürlük Yönetim Paneli"):
         with t1:
             df_admin = veri_yukle()
             if not df_admin.empty:
-                if "Müdürlük" in df_admin.columns:
-                    filtre = df_admin[df_admin["Müdürlük"] == adm_b].sort_values(by="Sıra_No")
-                    if not filtre.empty:
-                        st.dataframe(filtre)
-                        sec_id = st.selectbox("İşlem ID:", filtre["ID"].tolist())
-                        y_not = st.text_area("Yanıt:")
-                        if st.button("Kaydet"):
+                filtre = df_admin[df_admin["Müdürlük"] == adm_b].sort_values(by="Sıra_No")
+                if not filtre.empty:
+                    st.dataframe(filtre[["Sıra_No", "ID", "Tarih", "Ad", "Soyad", "Telefon", "Durum", "Detay", "Belediye_Cevabi"]])
+                    sec_id = st.selectbox("İşlem Yapılacak Kayıt (ID):", filtre["ID"].tolist())
+                    
+                    with st.container(border=True):
+                        st.markdown("**Kayıt Güncelleme**")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            y_durum = st.selectbox("Durum Güncelle:", ["İnceleniyor", "Tamamlandı", "Reddedildi", "Beklemede"])
+                        with c2:
+                            y_yonlendirme = st.selectbox("Başka Müdürlüğe Sevk Et:", tum_birimler, index=tum_birimler.index(adm_b))
+                        
+                        y_not = st.text_area("Vatandaşa Verilecek Cevap/Not:")
+                        
+                        if st.button("Güncellemeleri Kaydet"):
                             idx = df_admin[df_admin["ID"] == sec_id].index
+                            df_admin.at[idx[0], "Durum"] = y_durum
+                            df_admin.at[idx[0], "Müdürlük"] = y_yonlendirme
                             df_admin.at[idx[0], "Belediye_Cevabi"] = y_not
                             df_admin.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig")
-                            st.success("Güncellendi!"); st.rerun()
+                            st.success(f"ID {sec_id} başarıyla güncellendi!"); st.rerun()
+                else: st.info("Bu müdürlüğe ait bekleyen şikayet bulunmuyor.")
+
         with t2:
             df_m = mesaj_yukle()
             birim_m = df_m[df_m["Mudurluk"] == adm_b]
@@ -274,14 +285,17 @@ with st.expander("🏢 Müdürlük Yönetim Paneli"):
             temiz_ara_v = tel_temizle(ara_v)
             v_list = [v for v in birim_m["Gonderen"].unique() if ara_v.lower() in str(v).lower()]
             if not v_list: v_list = [v for v in birim_m["Telefon"].apply(str).unique() if temiz_ara_v in tel_temizle(v)]
+            
             if v_list:
                 v_sec = st.selectbox("Kullanıcı Seç:", v_list)
                 v_gec = birim_m[(birim_m["Gonderen"] == v_sec) | (birim_m["Telefon"].apply(tel_temizle) == tel_temizle(v_sec))]
                 for idx, r in v_gec.iterrows():
-                    st.info(f"👤 Vatandaş: {r['Mesaj']}")
-                    if r['Cevap'] != "Bekleniyor": st.success(f"🏛️ Yanıt: {r['Cevap']}")
-                y_ans = st.text_area("Cevap Yaz:", key="adm_ans")
-                if st.button("Gönder"):
+                    with st.container(border=True):
+                        st.info(f"👤 Vatandaş Mesajı: {r['Mesaj']}")
+                        if r['Cevap'] != "Bekleniyor": st.success(f"🏛️ Verilen Cevap: {r['Cevap']}")
+                
+                y_ans = st.text_area("Yeni Cevap Yaz:", key="adm_ans")
+                if st.button("Cevabı Gönder"):
                     df_m.at[v_gec.index[-1], "Cevap"] = y_ans
                     df_m.to_csv("mesajlar.csv", index=False, encoding="utf-8-sig")
-                    st.success("İletildi!"); st.rerun()
+                    st.success("Cevap başarıyla iletildi!"); st.rerun()
