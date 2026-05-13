@@ -46,45 +46,80 @@ def dosya_indirme_linki(dosya_yolu, dosya_adi, etiket="İndir"):
     b64 = base64.b64encode(data).decode()
     return f'<a href="data:application/octet-stream;base64,{b64}" download="{dosya_adi}" style="text-decoration:none; background-color:#4CAF50; color:white; padding:6px 12px; border-radius:4px; font-size:13px; font-weight:bold;">📩 {etiket}</a>'
 
-# --- 📚 GENİŞLETİLMİŞ EVRAK VERİTABANI ---
+# --- 📚 10 MÜDÜRLÜK VE TÜM İŞLEMLER ---
 EVRAK_REHBERI_DICT = {
     "Yazı İşleri Müdürlüğü": {
-        "Nikah Başvurusu": ["Nüfus Cüzdanı Aslı", "4 Adet Vesikalık Fotoğraf", "Sağlık Raporu", "İkametgah Belgesi", "Bekarlık Belgesi"],
-        "Asker Ailesi Yardımı": ["Askerlik Belgesi", "Vukuatlı Nüfus Kayıt Örneği", "Fakirlik Belgesi", "Kira Kontratı", "Kimlik Fotokopisi"],
-        "Encümen Kararı Örneği": ["Dilekçe", "Kimlik Fotokopisi", "Karar Tarih/No Bilgisi", "İlgili Gayrimenkul Tapusu", "Vekaletname (Gerekliyse)"],
-        "Arşiv Belge Talebi": ["Başvuru Dilekçesi", "Gayrimenkul Tapu Kaydı", "Emlak Vergisi Borcu Yoktur Yazısı", "Kimlik Fotokopisi", "Harç Makbuzu"],
-        "Genel Dilekçe İşlemleri": ["İmzalı Dilekçe", "Kimlik Fotokopisi", "İletişim Bilgileri", "Konuyla İlgili Varsa Ek Belgeler", "Yerleşim Yeri Belgesi"]
-    },
-    "İmar ve Şehircilik Müdürlüğü": {
-        "İnşaat Ruhsatı": ["Tapu Kaydı", "Mimari Proje", "İmar Durum Belgesi", "Zemin Etüd Raporu", "Müellif Taahhütnameleri"],
-        "Yapı Kullanma İzni (İskan)": ["Enerji Kimlik Belgesi", "SGK İlişiksiz Belgesi", "İtfaiye Uygunluk Raporu", "Asansör Tescil Belgesi", "Sığınak Raporu"],
-        "Numarataj İşlemleri": ["Tapu Fotokopisi", "Yapı Ruhsatı", "İmza Sirküleri", "İlgili Binanın Fotoğrafı", "Kadastro Çapı"],
-        "İmar Durum Belgesi Talebi": ["Dilekçe", "Güncel Tapu Kaydı", "Kadastro Çapı", "Koordinatlı Özet Çizelge", "Vekaletname"],
-        "Kaçak Yapı İhbarı": ["İhbar Dilekçesi", "Yapının Konumu/Adresi", "Varsa Yapıya Ait Fotoğraflar", "Kimlik Bilgileri", "İletişim Numarası"]
+        "Nikah Başvurusu": ["Nüfus Cüzdanı Aslı", "Sağlık Raporu", "4 Adet Fotoğraf", "İkametgah Belgesi", "Bekarlık Belgesi"],
+        "Asker Ailesi Yardımı": ["Askerlik Belgesi", "Nüfus Kayıt Örneği", "Fakirlik Belgesi", "Kira Kontratı", "Kimlik Fotokopisi"],
+        "Encümen Kararı Örneği": ["Dilekçe", "Kimlik Fotokopisi", "Karar No/Tarih Bilgisi", "Tapu Kaydı", "Vekaletname"],
+        "Arşiv Belge Talebi": ["Başvuru Dilekçesi", "Tapu Fotokopisi", "Vergi Borcu Yoktur Yazısı", "Kimlik", "Harç Makbuzu"],
+        "Genel Dilekçe İşlemleri": ["İmzalı Dilekçe", "Kimlik Fotokopisi", "İletişim Bilgileri", "Adres Beyanı", "Ek Belgeler"]
     },
     "Fen İşleri Müdürlüğü": {
-        "Yol Onarım Talebi": ["Konum Belirten Dilekçe", "Hasar Fotoğrafı", "Mahalle Muhtarı Onayı", "İletişim Bilgileri", "İlgili Sokak/Cadde Adı"],
-        "Kaldırım Hasarı": ["Talep Formu", "Hasarlı Bölgenin Fotoğrafı", "İkametgah Belgesi", "Kimlik Fotokopisi", "Adres Beyanı"],
-        "Kazı Çalışma İzni": ["Altyapı Planı", "Çalışma Takvimi", "Emniyet Tedbir Planı", "Harç Ödeme Dekontu", "Taahhütname"],
-        "Yağmur Suyu Hattı Talebi": ["Başvuru Dilekçesi", "Sokak Krokisi", "İmar Durum Yazısı", "Nüfus Kayıt Örneği", "Tapu Bilgisi"],
-        "Asfalt Kaplama Talebi": ["Muhtarlık Yazısı", "Dilekçe", "Yol Genişlik Bilgisi", "Sokak Sakinleri İmzası", "Hizmet Bedeli Makbuzu"]
+        "Yol Onarım Talebi": ["Hasar Fotoğrafı", "Konum Bilgisi", "Dilekçe", "Muhtar Onayı", "İletişim Bilgisi"],
+        "Kaldırım Hasarı": ["Fotoğraf", "İkametgah", "Dilekçe", "Adres Bilgisi", "Kimlik Beyanı"],
+        "Kazı Çalışma İzni": ["Altyapı Planı", "Çalışma Takvimi", "Emniyet Planı", "Harç Dekontu", "Taahhütname"],
+        "Yağmur Suyu Hattı": ["Başvuru Dilekçesi", "Sokak Krokisi", "İmar Yazısı", "Tapu Bilgisi", "Nüfus Kayıt Örneği"],
+        "Asfalt Kaplama": ["Muhtarlık Yazısı", "Talep Dilekçesi", "Yol Genişlik Raporu", "Sakinlerin İmzası", "Hizmet Dekontu"]
     },
     "Zabıta Müdürlüğü": {
-        "İşyeri Açma Ruhsatı": ["Tapu/Kira Kontratı", "Vergi Levhası", "İtfaiye Raporu", "Esnaf Odası Kaydı", "Ustalık Belgesi"],
-        "Pazar Yeri Tahsisi": ["Pazarcı Belgesi", "Sabıka Kaydı", "İkametgah", "2 Fotoğraf", "Belediye Borcu Yoktur Yazısı"],
-        "Gürültü Şikayeti": ["Şikayet Dilekçesi", "Olay Yeri Adresi", "Gürültü Zaman Bilgisi", "Şikayetçi Kimlik Bilgisi", "Varsa Video Kaydı"],
-        "İşgal Harcı Ödemesi": ["Kullanım Alanı Krokisi", "Ruhsat Fotokopisi", "Güncel Vergi Borcu Sorgusu", "Kimlik Beyanı", "Daha Önceki Makbuzlar"],
-        "Seyyar Satıcı Şikayeti": ["Dilekçe", "Konum Bilgisi", "Şikayet Saati", "İletişim Bilgileri", "Varsa Fotoğraf"]
+        "İşyeri Açma Ruhsatı": ["Tapu/Kira Kontratı", "Vergi Levhası", "İtfaiye Raporu", "Oda Kaydı", "Ustalık Belgesi"],
+        "Pazar Yeri Tahsisi": ["Pazarcı Belgesi", "Sabıka Kaydı", "İkametgah", "2 Fotoğraf", "Borcu Yoktur Yazısı"],
+        "Gürültü Şikayeti": ["Dilekçe", "Olay Yeri Adresi", "Zaman Bilgisi", "Kimlik Beyanı", "Varsa Video/Ses Kaydı"],
+        "Kaldırım İşgali": ["Ruhsat Fotokopisi", "Alan Krokisi", "Güncel Vergi Borcu", "Kimlik Fotokopisi", "Kullanım İzni"],
+        "Seyyar Satıcı Şikayeti": ["Konum Bilgisi", "Şikayet Saati", "Dilekçe", "Fotoğraf", "İletişim Numarası"]
+    },
+    "İmar ve Şehircilik Müdürlüğü": {
+        "İnşaat Ruhsatı": ["Güncel Tapu", "Mimari Proje", "İmar Durum Belgesi", "Zemin Etüdü", "Müellif Taahhüdü"],
+        "İskan (Yapı Kullanma)": ["Enerji Kimlik Belgesi", "SGK İlişiksiz Belgesi", "İtfaiye Uygunluk", "Asansör Tescili", "Sığınak Raporu"],
+        "Numarataj İşlemleri": ["Tapu Fotokopisi", "Yapı Ruhsatı", "İmza Sirküleri", "Bina Fotoğrafı", "Kadastro Çapı"],
+        "İmar Durum Sorgulama": ["Dilekçe", "Tapu Kaydı", "Kadastro Çapı", "Koordinat Özet Çizelgesi", "Harç Makbuzu"],
+        "Kaçak Yapı İhbarı": ["İhbar Dilekçesi", "Adres Bilgisi", "Fotoğraflar", "Kimlik Bilgileri", "Konum Verisi"]
     },
     "Veteriner İşleri Müdürlüğü": {
-        "Sokak Hayvanı Tedavi": ["Başvuru Formu", "Hayvanın Bulunduğu Konum", "İhbarcı Kimlik Bilgisi", "Olay Fotoğrafı (Varsa)", "İletişim Numarası"],
-        "Sahipli Hayvan Kaydı": ["Hayvanın Pasaportu", "Kuduz Aşısı Karnesi", "Çip Numarası", "Sahibinin Kimliği", "İkametgah Belgesi"],
-        "İlaçlama Talebi (Haşere)": ["Dilekçe", "Açık Adres", "İlaçlanacak Alanın Metrekaresi", "Kimlik Bilgisi", "Yerleşim Yeri Belgesi"],
-        "Kısırlaştırma Randevusu": ["Hayvan Sağlık Karnesi", "Sahibinin Kimlik Kartı", "Randevu Formu", "Taahhütname", "İkametgah Belgesi"],
-        "Yaralı Hayvan Bildirimi": ["Olay Yeri Konumu", "Vatandaş Beyan Formu", "Olay Anı Fotoğrafı", "İletişim Bilgileri", "İlgili Bölge Muhtarlık Bilgisi"]
+        "Sokak Hayvanı Tedavi": ["Başvuru Formu", "Konum Bilgisi", "İhbarcı Kimliği", "Fotoğraf", "İletişim"],
+        "Sahipli Hayvan Kaydı": ["Hayvan Pasaportu", "Aşı Karnesi", "Çip Numarası", "Sahip Kimliği", "İkametgah Belgesi"],
+        "İlaçlama Talebi": ["Dilekçe", "Adres Beyanı", "Alan Metrekaresi", "Kimlik", "Yerleşim Yeri Belgesi"],
+        "Kısırlaştırma": ["Sağlık Karnesi", "Sahip Kimlik Kartı", "Randevu Formu", "Taahhütname", "İkametgah"],
+        "Yaralı Hayvan Bildirimi": ["Olay Yeri Fotoğrafı", "Konum", "Beyan Formu", "İletişim", "Bölge Bilgisi"]
+    },
+    "Mali Hizmetler Müdürlüğü": {
+        "Emlak Vergisi Bildirimi": ["Tapu Fotokopisi", "Kimlik Fotokopisi", "Emlak Bildirim Formu", "Rayiç Bedel Yazısı", "İskan Belgesi"],
+        "Borç Yapılandırma": ["Dilekçe", "Kimlik Fotokopisi", "Eski Makbuzlar", "İmza Sirküleri", "Yapılandırma Formu"],
+        "Rayiç Bedel Belgesi": ["Tapu Kaydı", "Kimlik", "Belediye Borcu Yoktur Yazısı", "Vekaletname", "Harç Dekontu"],
+        "Ödeme Problemleri": ["Makbuz Örneği", "Dilekçe", "Banka Dekontu", "Kimlik", "Ekstre Bilgisi"],
+        "Çevre Temizlik Vergisi": ["Kira Kontratı", "Vergi Levhası", "Kimlik", "Tapu Bilgisi", "Adres Kaydı"]
+    },
+    "Emlak ve İstimlak Müdürlüğü": {
+        "Taşınmaz Kiralama": ["Dilekçe", "Kimlik", "İmza Beyannamesi", "Teminat Dekontu", "Oda Kayıt Belgesi"],
+        "Ecrimisil Ödemeleri": ["Ödeme Emri Belgesi", "Dilekçe", "Kimlik", "İlgili Yerin Krokisi", "Geçmiş Makbuzlar"],
+        "Kamulaştırma Bilgisi": ["Tapu Kaydı", "Kimlik", "Dilekçe", "Veraset İlamı", "Vekaletname"],
+        "Yer Tahsisi": ["Kurum Yazısı / Dilekçe", "Kimlik", "Faaliyet Belgesi", "Tüzük", "Proje Detayı"],
+        "Gayrimenkul Satış": ["Şartname", "Geçici Teminat", "Kimlik", "İkametgah", "Yetki Belgesi"]
+    },
+    "İklim Değişikliği ve Sıfır Atık Müdürlüğü": {
+        "Geri Dönüşüm Kutusu": ["Talep Dilekçesi", "Site/Apartman Karar Örneği", "Konum Bilgisi", "Kimlik", "Adres Beyanı"],
+        "Atık Yağ Toplama": ["Adres", "Miktar Bilgisi", "Dilekçe", "İletişim Numarası", "Kap Kapasite Bilgisi"],
+        "Elektronik Atık": ["Atık Listesi", "Konum", "Dilekçe", "Kimlik", "Randevu Tarihi"],
+        "Sıfır Atık Eğitimi": ["Başvuru Yazısı", "Katılımcı Sayısı", "Konu Başlıkları", "Kurum Bilgisi", "İletişim"],
+        "Kompost Üretim Bilgi": ["Başvuru", "Adres", "Bahçe/Alan Bilgisi", "Kimlik", "İletişim"]
+    },
+    "Destek Hizmetleri Müdürlüğü": {
+        "İhale Dosyası Alımı": ["Vezne Makbuzu", "İmza Sirküleri", "Kimlik Fotokopisi", "Yetki Belgesi", "Oda Kaydı"],
+        "Tedarikçi Kaydı": ["Vergi Levhası", "Ticaret Sicil Gazetesi", "İmza Sirküleri", "Banka Bilgileri", "Faaliyet Belgesi"],
+        "Satın Alma Talebi": ["Teknik Şartname", "Piyasa Araştırma Formu", "Birim Onayı", "Bütçe Ödeneği Yazısı", "Dilekçe"],
+        "Doğrudan Temin": ["Fiyat Teklifi", "Firma Bilgi Formu", "Vergi Borcu Yoktur Yazısı", "SGK Borcu Yoktur", "Kimlik"],
+        "Hizmet Alımı": ["İş Deneyim Belgesi", "Sözleşme Taslağı", "Onay Belgesi", "Birim Yazısı", "Firma Evrakları"]
+    },
+    "Yapı Kontrol Müdürlüğü": {
+        "Riskli Yapı Tespiti": ["Tapu Aslı", "Nüfus Kayıt Örneği", "Belediye Borcu Yoktur", "Dilekçe", "Bina Krokisi"],
+        "Yıkım Kararı Sorgulama": ["Dilekçe", "Kimlik", "Tapu Fotokopisi", "Encümen Kararı Örneği", "Harç Makbuzu"],
+        "Bina Güvenlik Riski": ["İhbar Dilekçesi", "Fotoğraflar", "Adres Bilgisi", "Kimlik", "İletişim"],
+        "İskan Kontrolü": ["Yapı Ruhsatı", "Müellif Raporu", "İtfaiye Onayı", "SGK Yazısı", "Kimlik"],
+        "Statik Rapor Talebi": ["Tapu Kaydı", "Dilekçe", "Bina Kimlik Numarası", "Harç Dekontu", "Kimlik"]
     }
 }
-tum_birimler = sorted(["Destek Hizmetleri Müdürlüğü", "Emlak ve İstimlak Müdürlüğü", "Fen İşleri Müdürlüğü", "Mali Hizmetler Müdürlüğü", "Veteriner İşleri Müdürlüğü", "Yapı Kontrol Müdürlüğü", "Yazı İşleri Müdürlüğü", "Zabıta Müdürlüğü", "İklim Değişikliği ve Sıfır Atık Müdürlüğü", "İmar ve Şehircilik Müdürlüğü"])
+tum_birimler = sorted(list(EVRAK_REHBERI_DICT.keys()))
 
 # --- SESSION STATE ---
 if "portal_modu" not in st.session_state: st.session_state.portal_modu = "karşılama"
@@ -102,11 +137,11 @@ if st.session_state.portal_modu == "karşılama":
     st.markdown("<h2 style='text-align: center;'>Hoş Geldiniz! Lütfen Giriş Türünü Seçiniz</h2>", unsafe_allow_html=True)
     cv, cm = st.columns(2)
     with cv:
-        st.info("### 👤 Vatandaş Portalı\nAkıllı Asistan ile hızlıca talep oluşturun ve takip edin.")
+        st.info("### 👤 Vatandaş Portalı\nAkıllı Asistan ile işlemlerinizi hızla halledin.")
         if st.button("Vatandaş Girişi", use_container_width=True):
             st.session_state.portal_modu = "vatandas"; st.rerun()
     with cm:
-        st.success("### 🏢 Müdürlük Paneli\nYetkili girişi yaparak talepleri yönetin.")
+        st.success("### 🏢 Müdürlük Paneli\nYetkili girişi yaparak sistemi yönetin.")
         if st.button("Müdürlük Girişi", use_container_width=True, type="primary"):
             st.session_state.portal_modu = "mudurluk"; st.rerun()
 
@@ -145,8 +180,7 @@ elif st.session_state.portal_modu == "vatandas":
             arama = st.text_input("E-posta veya Telefon")
             sf = st.text_input("Sohbet Şifreniz", type="password")
             if arama:
-                temiz = tel_temizle(arama)
-                df_t = veri_yukle()
+                temiz = tel_temizle(arama); df_t = veri_yukle()
                 if not df_t.empty:
                     res_t = df_t[(df_t["E-posta"] == arama) | (df_t["Telefon"].apply(tel_temizle) == temiz)]
                     if not res_t.empty: st.markdown("#### 📋 Talepleriniz"), st.table(res_t[["Tarih", "Müdürlük", "Durum", "Belediye_Cevabi"]])
@@ -177,39 +211,47 @@ elif st.session_state.portal_modu == "vatandas":
             c1, c2 = st.columns(2)
             u_ad = c1.text_input("Ad"); u_soyad = c2.text_input("Soyad")
             u_mail = c1.text_input("E-posta"); u_tel = c2.text_input("Telefon")
-            u_pass = st.text_input("Sohbet Şifresi Belirle", type="password")
-            u_mud = st.selectbox("Birim", tum_birimler)
-            u_msg = st.text_area("Mesaj"); u_f = st.file_uploader("Belge")
+            u_pass = st.text_input("Şifre Belirle", type="password"); u_mud = st.selectbox("Birim", tum_birimler); u_msg = st.text_area("Mesaj"); u_f = st.file_uploader("Belge")
             if st.form_submit_button("Sohbeti Başlat"):
                 if u_ad and u_soyad and re.match(EMAIL_PATTERN, u_mail) and re.match(PHONE_PATTERN, u_tel):
-                    st.success("✅ Başarıyla iletildi!"); time.sleep(2); st.rerun()
+                    st.success("✅ İletildi!"); time.sleep(2); st.rerun()
 
     elif st.session_state.sayfa == "evrak_rehberi":
         st.markdown("### 📄 Evrak Rehberi & İşlem Kılavuzu")
         if st.button("⬅️ Geri"): st.session_state.sayfa = "asistan_ana"; st.rerun()
-        
-        # --- BURASI TAM İSTEDİĞİN GİBİ GÜNCELLENDİ ---
-        m_s = st.selectbox("Lütfen İlgili Müdürlüğü Seçiniz", list(EVRAK_REHBERI_DICT.keys()))
-        
-        if m_s:
-            st.info(f"💡 {m_s} birimi için en çok talep edilen 5 işlem aşağıdadır. Evrakları görmek için birini seçin:")
-            islem_turu = st.radio("Hangi işlemi yapmak istiyorsunuz?", list(EVRAK_REHBERI_DICT[m_s].keys()))
-            
-            if islem_turu:
-                with st.container(border=True):
-                    st.markdown(f"#### 📁 {islem_turu} İçin Gerekli Evraklar")
-                    evraklar = EVRAK_REHBERI_DICT[m_s][islem_turu]
-                    for evrak in evraklar:
-                        st.markdown(f"- ✅ {evrak}")
-                    st.warning("⚠️ Not: Özel durumlarda ek belge talep edilebilir.")
+        m_s = st.selectbox("Müdürlük Seçiniz", tum_birimler)
+        if m_s in EVRAK_REHBERI_DICT:
+            islem = st.radio("İşlem Seçiniz:", list(EVRAK_REHBERI_DICT[m_s].keys()))
+            with st.container(border=True):
+                st.markdown(f"#### 📁 {islem} İçin Gerekli Evraklar")
+                for e in EVRAK_REHBERI_DICT[m_s][islem]: st.markdown(f"- ✅ {e}")
+        else: st.info("Bu birim için evrak rehberi yakında eklenecektir.")
 
 # --- 🏢 3. EKRAN: MÜDÜRLÜK PANELİ ---
 elif st.session_state.portal_modu == "mudurluk":
     if st.sidebar.button("🏠 Ana Karşılama"): st.session_state.portal_modu = "karşılama"; st.rerun()
+    st.markdown("### 🏢 Müdürlük Paneli")
     c1, c2 = st.columns(2)
     adm_b = c1.selectbox("Biriminiz:", tum_birimler); adm_s = c2.text_input("Şifre:", type="password")
     if adm_s == "1234":
         t1, t2 = st.tabs(["📋 Talepler", "💬 Sohbetler"])
+        with t1:
+            df_t = veri_yukle()
+            if not df_t.empty:
+                filt = df_t[df_t["Müdürlük"] == adm_b]
+                st.dataframe(filt, use_container_width=True)
+                if not filt.empty:
+                    sid = st.selectbox("ID Seç:", filt["ID"].tolist())
+                    with st.container(border=True):
+                        cd, cs = st.columns(2)
+                        yd = cd.selectbox("Durum:", ["İnceleniyor", "Tamamlandı", "Reddedildi", "Sevk Edildi"])
+                        ys = cs.selectbox("Sevk:", tum_birimler, index=tum_birimler.index(adm_b))
+                        ans = st.text_area("Yanıt:")
+                        if st.button("Güncelle"):
+                            idx = df_t[df_t["ID"] == sid].index
+                            df_t.at[idx[0], "Belediye_Cevabi"] = ans
+                            df_t.at[idx[0], "Durum"] = yd if ys == adm_b else "Sevk Edildi"
+                            df_t.at[idx[0], "Müdürlük"] = ys; df_t.to_csv("sikayetler.csv", index=False, encoding="utf-8-sig"); st.success("Güncellendi!"); time.sleep(1); st.rerun()
         with t2:
             df_m = mesaj_yukle()
             bm = df_m[df_m["Mudurluk"] == adm_b]
@@ -223,6 +265,6 @@ elif st.session_state.portal_modu == "mudurluk":
                         if r['Dosya_Adi'] != "Yok": st.markdown(dosya_indirme_linki(os.path.join("yuklenen_belgeler", str(r['Dosya_Adi'])), str(r['Dosya_Adi']), "Vatandaşın Dosyası"), unsafe_allow_html=True)
                         if r['Cevap'] != "Bekleniyor": st.success(f"🏛️ Cevabınız: {r['Cevap']}")
                 with st.form("adm_rep"):
-                    a = st.text_area("Cevap"); f = st.file_uploader("Belge Gönder")
+                    a = st.text_area("Cevap"); f = st.file_uploader("Belge")
                     if st.form_submit_button("Yanıtla"):
-                        st.success("✅ İletildi!"); time.sleep(1.5); st.rerun()
+                        df_m.at[vg.index[-1], "Cevap"] = a; df_m.to_csv("mesajlar.csv", index=False, encoding="utf-8-sig"); st.success("İletildi!"); time.sleep(1.5); st.rerun()
