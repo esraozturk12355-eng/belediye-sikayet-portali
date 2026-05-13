@@ -111,7 +111,7 @@ elif st.session_state.portal_modu == "vatandas":
             m_valid = bool(re.match(EMAIL_PATTERN, ep, re.IGNORECASE)) if ep else False
             if ep and not m_valid: st.error("❌ Geçersiz e-posta formatı!")
             
-            tel = c2.text_input("Telefon (05xx... veya 5xx...)")
+            tel = c2.text_input("Telefon ")
             p_valid = bool(re.match(PHONE_PATTERN, tel)) if tel else False
             if tel and not p_valid: st.error("❌ Geçersiz telefon numarası!")
             
@@ -125,7 +125,7 @@ elif st.session_state.portal_modu == "vatandas":
         st.markdown("### 🔍 Takip ve Sorgulama")
         if st.button("⬅️ Geri"): st.session_state.sayfa = "asistan_ana"; st.rerun()
         with st.container(border=True):
-            arama = st.text_input("E-posta veya Telefon (0'lı veya 0'sız)")
+            arama = st.text_input("E-posta veya Telefon ")
             sf = st.text_input("Şifre", type="password")
             if arama:
                 temiz = tel_temizle(arama)
